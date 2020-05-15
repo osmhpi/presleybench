@@ -1,0 +1,21 @@
+
+# object files
+*.o
+
+# built programs
+presleybench
+
+# build system fragments
+Makefile
+Makefile.in
+aclocal.m4
+autom4te.cache/
+config.h
+config.h.in
+config.log
+config.status
+configure
+scripts/
+stamp-h1
+.dirstamp
+.deps/
