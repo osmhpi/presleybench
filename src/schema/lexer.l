@@ -2,13 +2,15 @@
 %{
 
 #include "schema.h"
+
+#include "property.h"
 #include "parser.h"
 
 #include <errno.h>
 #include <string.h>
 #include <stdarg.h>
 
-int
+static int
 strapp (char **buf, size_t *len, const char *format, ...)
 {
   va_list ap;
@@ -60,10 +62,13 @@ name            return NAME;
 type            return TYPE;
 "primary key"   return PRIMARYKEY;
 
+int             return INT;
 smallint        return SMALLINT;
+numeric         return NUMERIC;
 real            return REAL;
 float           return FLOAT;
 char            return CHAR;
+datetime        return DATETIME;
 
 \"              {
                 yy_push_state(str);
@@ -73,10 +78,16 @@ char            return CHAR;
 <str>{
 \"              {
                 yy_pop_state();
+                yylval.string = string_buf;
+                string_buf = NULL;
+                string_len = 0;
                 return STRING;
                 }
 \n              {
                 yyerror(NULL, "unterminated string constant");
+                free(string_buf);
+                string_buf = NULL;
+                string_len = 0;
                 exit(2);
                 }
 \\[0-7]{1,3}    {
@@ -86,6 +97,9 @@ char            return CHAR;
                 if (oct > 0xff)
                   {
                     yyerror(NULL, "octal escape out of bounds");
+                    free(string_buf);
+                    string_buf = NULL;
+                    string_len = 0;
                     exit(2);
                   }
 
@@ -93,18 +107,27 @@ char            return CHAR;
                 if (res)
                   {
                     yyerror(NULL, strerror(errno));
+                    free(string_buf);
+                    string_buf = NULL;
+                    string_len = 0;
                     exit(2);
                   }
                 }
 \\[0-9]+        {
-                  yyerror(NULL, "bad escape sequence");
-                  exit(2);
+                yyerror(NULL, "bad escape sequence");
+                free(string_buf);
+                string_buf = NULL;
+                string_len = 0;
+                exit(2);
                 }
 \\n             {
                 int res = strapp(&string_buf, &string_len, "\n");
                 if (res)
                   {
                     yyerror(NULL, strerror(errno));
+                    free(string_buf);
+                    string_buf = NULL;
+                    string_len = 0;
                     exit(2);
                   }
                 }
@@ -113,6 +136,9 @@ char            return CHAR;
                 if (res)
                   {
                     yyerror(NULL, strerror(errno));
+                    free(string_buf);
+                    string_buf = NULL;
+                    string_len = 0;
                     exit(2);
                   }
                 }
@@ -121,6 +147,9 @@ char            return CHAR;
                 if (res)
                   {
                     yyerror(NULL, strerror(errno));
+                    free(string_buf);
+                    string_buf = NULL;
+                    string_len = 0;
                     exit(2);
                   }
                 }
@@ -129,6 +158,9 @@ char            return CHAR;
                 if (res)
                   {
                     yyerror(NULL, strerror(errno));
+                    free(string_buf);
+                    string_buf = NULL;
+                    string_len = 0;
                     exit(2);
                   }
                 }
@@ -137,6 +169,9 @@ char            return CHAR;
                 if (res)
                   {
                     yyerror(NULL, strerror(errno));
+                    free(string_buf);
+                    string_buf = NULL;
+                    string_len = 0;
                     exit(2);
                   }
                 }
@@ -145,6 +180,9 @@ char            return CHAR;
                 if (res)
                   {
                     yyerror(NULL, strerror(errno));
+                    free(string_buf);
+                    string_buf = NULL;
+                    string_len = 0;
                     exit(2);
                   }
                 }
@@ -153,14 +191,26 @@ char            return CHAR;
                 if (res)
                   {
                     yyerror(NULL, strerror(errno));
+                    free(string_buf);
+                    string_buf = NULL;
+                    string_len = 0;
                     exit(2);
                   }
                 }
 }
 
-0[0-7]+         return NUMBER;
-0x[0-9a-zA-Z]+  return NUMBER;
-0|[1-9][0-9]*   return NUMBER;
+0[0-7]*|0[xX][0-9a-fA-F]+|[1-9][0-9]* {
+                int errsv = errno;
+                unsigned long num = strtoul(yytext, NULL, 0);
+                if (errno == ERANGE)
+                  {
+                    yyerror(NULL, strerror(errno));
+                    exit(1);
+                  }
+                yylval.number = num;
+                errno = errsv;
+                return NUMBER;
+                }
 
 [ \t]
 \n              return NEWLINE;

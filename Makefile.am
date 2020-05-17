@@ -13,7 +13,9 @@ presleybench_SOURCES = \
   src/schema/schema.c src/schema/schema.h \
   src/schema/lexer.l src/schema/parser.y \
   src/schema/table.c src/schema/table.h \
-  src/schema/column.c src/schema/column.h
+  src/schema/column.c src/schema/column.h \
+  src/schema/datatype.c src/schema/datatype.h \
+  src/schema/property.c src/schema/property.h
 
 BUILT_SOURCES = \
   src/schema/parser.h

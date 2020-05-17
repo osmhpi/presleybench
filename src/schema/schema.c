@@ -1,6 +1,7 @@
 
 #include "schema.h"
 
+#include "property.h"
 #include "parser.h"
 
 #include <stdlib.h>
@@ -46,6 +47,7 @@ schema_table_add (struct schema_t *schema, struct table_t *table)
 
 extern FILE *yyin;
 const char *yyfilename;
+extern void yylex_destroy(void);
 
 int
 schema_parse_from_file (struct schema_t *schema, const char *filename)
@@ -56,7 +58,13 @@ schema_parse_from_file (struct schema_t *schema, const char *filename)
   if (!yyin)
     return 1;
 
-  yyparse(schema);
+  int res = yyparse(schema);
+
+  fclose(yyin);
+  yylex_destroy();
+
+  if (res)
+    return 1;
 
   return 0;
 }

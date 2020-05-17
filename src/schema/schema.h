@@ -5,7 +5,6 @@
 
 #include <stddef.h>
 
-
 struct schema_t
 {
   struct table_t **tables;
