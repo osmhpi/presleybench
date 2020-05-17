@@ -2,6 +2,11 @@
 # object files
 *.o
 
+# generated sources
+src/schema/lexer.c
+src/schema/parser.c
+src/schema/parser.h
+
 # built programs
 presleybench
 
@@ -12,6 +17,7 @@ aclocal.m4
 autom4te.cache/
 config.h
 config.h.in
+config.h.in~
 config.log
 config.status
 configure

@@ -1,7 +1,10 @@
 
 #include "schema.h"
 
+#include "parser.h"
+
 #include <stdlib.h>
+#include <stdio.h>
 
 void
 schema_init (struct schema_t *schema)
@@ -37,6 +40,23 @@ schema_table_add (struct schema_t *schema, struct table_t *table)
   schema->tables = tables;
   schema->tables[schema->ntables] = table;
   schema->ntables++;
+
+  return 0;
+}
+
+extern FILE *yyin;
+const char *yyfilename;
+
+int
+schema_parse_from_file (struct schema_t *schema, const char *filename)
+{
+  yyfilename = filename;
+
+  yyin = fopen(filename, "r");
+  if (!yyin)
+    return 1;
+
+  yyparse(schema);
 
   return 0;
 }

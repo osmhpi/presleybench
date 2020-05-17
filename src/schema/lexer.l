@@ -1,0 +1,170 @@
+
+%{
+
+#include "schema.h"
+#include "parser.h"
+
+#include <errno.h>
+#include <string.h>
+#include <stdarg.h>
+
+int
+strapp (char **buf, size_t *len, const char *format, ...)
+{
+  va_list ap;
+
+  va_start(ap, format);
+  int addlen = vsnprintf(NULL, 0, format, ap);
+  va_end(ap);
+
+  if (addlen < 0)
+    return 1;
+
+  char *newstr = realloc(*buf, sizeof(**buf) * (*len + addlen + 1));
+  if (!newstr)
+    return 2;
+
+  va_start(ap, format);
+  vsnprintf(newstr + *len, addlen + 1, format, ap);
+  va_end(ap);
+
+  *buf = newstr;
+  *len += addlen;
+
+  return 0;
+}
+
+extern int yyerror (struct schema_t*, const char*);
+
+char *string_buf = NULL;
+size_t string_len = 0;
+
+static int yy_top_state(void) __attribute__((unused));
+
+%}
+
+%option noyywrap
+%option noinput
+%option nounput
+%option yylineno
+%option stack
+
+%x str
+
+%%
+
+table           return TABLE;
+column          return COLUMN;
+
+name            return NAME;
+type            return TYPE;
+"primary key"   return PRIMARYKEY;
+
+smallint        return SMALLINT;
+real            return REAL;
+float           return FLOAT;
+char            return CHAR;
+
+\"              {
+                yy_push_state(str);
+                string_buf = NULL;
+                string_len = 0;
+                }
+<str>{
+\"              {
+                yy_pop_state();
+                return STRING;
+                }
+\n              {
+                yyerror(NULL, "unterminated string constant");
+                exit(2);
+                }
+\\[0-7]{1,3}    {
+                int oct;
+                  scanf(yytext + 1, "%o", &oct);
+
+                if (oct > 0xff)
+                  {
+                    yyerror(NULL, "octal escape out of bounds");
+                    exit(2);
+                  }
+
+                int res = strapp(&string_buf, &string_len, "%i", oct);
+                if (res)
+                  {
+                    yyerror(NULL, strerror(errno));
+                    exit(2);
+                  }
+                }
+\\[0-9]+        {
+                  yyerror(NULL, "bad escape sequence");
+                  exit(2);
+                }
+\\n             {
+                int res = strapp(&string_buf, &string_len, "\n");
+                if (res)
+                  {
+                    yyerror(NULL, strerror(errno));
+                    exit(2);
+                  }
+                }
+\\t             {
+                int res = strapp(&string_buf, &string_len, "\t");
+                if (res)
+                  {
+                    yyerror(NULL, strerror(errno));
+                    exit(2);
+                  }
+                }
+\\r             {
+                int res = strapp(&string_buf, &string_len, "\r");
+                if (res)
+                  {
+                    yyerror(NULL, strerror(errno));
+                    exit(2);
+                  }
+                }
+\\b             {
+                int res = strapp(&string_buf, &string_len, "\b");
+                if (res)
+                  {
+                    yyerror(NULL, strerror(errno));
+                    exit(2);
+                  }
+                }
+\\f             {
+                int res = strapp(&string_buf, &string_len, "\f");
+                if (res)
+                  {
+                    yyerror(NULL, strerror(errno));
+                    exit(2);
+                  }
+                }
+\\(.|\n)        {
+                int res = strapp(&string_buf, &string_len, "%c", yytext[1]);
+                if (res)
+                  {
+                    yyerror(NULL, strerror(errno));
+                    exit(2);
+                  }
+                }
+[^\\\n\"]+      {
+                int res = strapp(&string_buf, &string_len, "%s", yytext);
+                if (res)
+                  {
+                    yyerror(NULL, strerror(errno));
+                    exit(2);
+                  }
+                }
+}
+
+0[0-7]+         return NUMBER;
+0x[0-9a-zA-Z]+  return NUMBER;
+0|[1-9][0-9]*   return NUMBER;
+
+[ \t]
+\n              return NEWLINE;
+
+.               return *yytext;
+
+%%
