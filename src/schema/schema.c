@@ -48,6 +48,7 @@ schema_table_add (struct schema_t *schema, struct table_t *table)
 extern FILE *yyin;
 const char *yyfilename;
 extern void yylex_destroy(void);
+extern int yyparse(struct schema_t*);
 
 int
 schema_parse_from_file (struct schema_t *schema, const char *filename)

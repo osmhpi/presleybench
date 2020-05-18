@@ -11,13 +11,13 @@
 #include <string.h>
 
 extern const char *yyfilename;
-extern const char *program_invocation_short_name;
 extern int yylineno;
+extern const char *program_invocation_name;
 
 void
 yyerror (__attribute__((unused)) struct schema_t *schema, char const *format, ...)
 {
-  fprintf(stderr, "%s: %s:%d: ", program_invocation_short_name, yyfilename, yylineno);
+  fprintf(stderr, "%s: %s:%d: ", program_invocation_name, yyfilename, yylineno);
 
   va_list ap;
   va_start(ap, format);
