@@ -15,7 +15,9 @@ presleybench_SOURCES = \
   src/schema/table.c src/schema/table.h \
   src/schema/column.c src/schema/column.h \
   src/schema/datatype.c src/schema/datatype.h \
-  src/schema/property.c src/schema/property.h
+  src/schema/property.c src/schema/property.h \
+  src/schema/validate.c src/schema/validate.h \
+  src/schema/tpcc.c src/schema/tpcc.h
 
 presleybench_LDADD = $(argp_LIBS)
 

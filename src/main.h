@@ -5,7 +5,14 @@
 #  include <config.h>
 #endif
 
+#include "schema/tpcc.h"
+
 #include <argp.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <string.h>
+
+extern const char *program_invocation_name;
 
 const char *argp_program_version = PACKAGE_STRING;
 const char *argp_program_bug_address = PACKAGE_BUGREPORT;
@@ -15,15 +22,18 @@ const char args_doc[] = "[--] <schema file>";
 
 static struct argp_option options[] =
 {
-  {"verbose", 'v', 0, 0, "be more verbose", 0},
-  {"quiet", 'q', 0, 0, "be less verbose", 0},
-  {0, 0, 0, 0, 0, 0}
+  {NULL, 't', NULL, 0, "write the tpc-c schema to stdout and exit", 0},
+  {"scale", 's', "factor", 0, "scale factor for tpc-c, must be one of 1, 10, 100, 300, 1000, 3000, 10000, 30000, 100000", 0},
+  {"verbose", 'v', NULL, 0, "be more verbose", 0},
+  {"quiet", 'q', NULL, 0, "be less verbose", 0},
+  {NULL, 0, NULL, 0, NULL, 0}
 };
 
 struct arguments
 {
   const char *schemafile;
   int verbosity;
+  unsigned int scale;
 };
 
 static error_t
@@ -33,6 +43,23 @@ parse_opt (int key, char *arg, struct argp_state *state)
 
   switch (key)
     {
+    case 't':
+      puts(default_tpcc);
+      exit(0);
+    case 's':
+      {
+        int errsv = errno;
+        errno = 0;
+        unsigned int scale = strtol(arg, NULL, 0);
+        if (errno)
+          {
+            fprintf(stderr, "%s: invalid scale factor: '%s': %s\n", program_invocation_name, arg, strerror(errno));
+            exit(1);
+          }
+        errno = errsv;
+        args->scale = scale;
+        break;
+      }
     case 'v':
       args->verbosity++;
       break;

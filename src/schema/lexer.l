@@ -201,8 +201,9 @@ datetime        return DATETIME;
 
 0[0-7]*|0[xX][0-9a-fA-F]+|[1-9][0-9]* {
                 int errsv = errno;
+                errno = 0;
                 unsigned long num = strtoul(yytext, NULL, 0);
-                if (errno == ERANGE)
+                if (errno)
                   {
                     yyerror(NULL, strerror(errno));
                     exit(1);

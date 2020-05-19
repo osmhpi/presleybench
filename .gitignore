@@ -7,6 +7,8 @@ src/schema/lexer.c
 src/schema/parser.c
 src/schema/parser.h
 
+*.schema
+
 # built programs
 presleybench
 
