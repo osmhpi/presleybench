@@ -1,7 +1,7 @@
 #ifndef PROPERTY_H
 #define PROPERTY_H
 
-#include "table.h"
+#include "schema/table.h"
 
 enum property_e
 {

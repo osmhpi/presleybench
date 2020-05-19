@@ -1,5 +1,5 @@
 
-#include "property.h"
+#include "schema/property.h"
 
 const char*
 strproperty (enum property_e property)

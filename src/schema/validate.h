@@ -1,7 +1,7 @@
 #ifndef VALIDATE_H
 #define VALIDATE_H
 
-#include "schema.h"
+#include "schema/schema.h"
 
 int validate_schema (struct schema_t*);
 

@@ -4,6 +4,8 @@
 #include "schema/schema.h"
 #include "schema/validate.h"
 
+#include "data/generate.h"
+
 #include <errno.h>
 #include <string.h>
 
@@ -39,6 +41,9 @@ main (int argc, char *argv[])
     return res;
 
   // generate data
+  res = generate_schema_data(&schema);
+  if (res)
+    return res;
 
   // cleanup
   schema_fini(&schema);

@@ -5,6 +5,7 @@ ACLOCAL_AMFLAGS = -I m4
 AUTOMAKE_OPTIONS = subdir-objects
 
 AM_YFLAGS = -d
+AM_CPPFLAGS = -I$(top_srcdir)/src/
 
 bin_PROGRAMS = presleybench
 
@@ -17,7 +18,8 @@ presleybench_SOURCES = \
   src/schema/datatype.c src/schema/datatype.h \
   src/schema/property.c src/schema/property.h \
   src/schema/validate.c src/schema/validate.h \
-  src/schema/tpcc.c src/schema/tpcc.h
+  src/schema/tpcc.c src/schema/tpcc.h \
+  src/data/generate.c src/data/generate.h
 
 presleybench_LDADD = $(argp_LIBS)
 

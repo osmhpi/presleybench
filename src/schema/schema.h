@@ -1,7 +1,7 @@
 #ifndef SCHEMA_H
 #define SCHEMA_H
 
-#include "table.h"
+#include "schema/table.h"
 
 #include <stddef.h>
 

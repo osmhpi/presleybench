@@ -1,7 +1,7 @@
 #ifndef COLUMN_H
 #define COLUMN_H
 
-#include "datatype.h"
+#include "schema/datatype.h"
 
 struct column_t
 {

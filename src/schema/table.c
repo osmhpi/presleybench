@@ -1,5 +1,5 @@
 
-#include "table.h"
+#include "schema/table.h"
 
 #include <stdlib.h>
 

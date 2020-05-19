@@ -1,5 +1,5 @@
 
-#include "tpcc.h"
+#include "schema/tpcc.h"
 
 const char *default_tpcc = "\n"
                            "table {\n"

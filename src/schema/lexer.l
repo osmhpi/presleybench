@@ -1,10 +1,10 @@
 
 %{
 
-#include "schema.h"
+#include "schema/schema.h"
 
-#include "property.h"
-#include "parser.h"
+#include "schema/property.h"
+#include "schema/parser.h"
 
 #include <errno.h>
 #include <string.h>

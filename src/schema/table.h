@@ -1,7 +1,7 @@
 #ifndef TABLE_H
 #define TABLE_H
 
-#include "column.h"
+#include "schema/column.h"
 
 #include <stddef.h>
 

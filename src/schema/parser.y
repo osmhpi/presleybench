@@ -1,8 +1,8 @@
 
 %{
 
-#include "property.h"
-#include "schema.h"
+#include "schema/property.h"
+#include "schema/schema.h"
 
 #include <stdio.h>
 #include <stdlib.h>
