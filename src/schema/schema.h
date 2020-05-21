@@ -7,6 +7,8 @@
 
 struct schema_t
 {
+  size_t scale;
+
   struct table_t **tables;
   size_t ntables;
 };

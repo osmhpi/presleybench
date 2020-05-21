@@ -8,6 +8,7 @@
 struct table_t
 {
   char *name;
+  size_t rows;
 
   struct column_t **columns;
   size_t ncolumns;

@@ -7,6 +7,7 @@ void
 table_init (struct table_t *table)
 {
   table->name = NULL;
+  table->rows = 0;
   table->columns = NULL;
   table->ncolumns = 0;
 }

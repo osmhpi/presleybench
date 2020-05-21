@@ -59,8 +59,11 @@ table           return TABLE;
 column          return COLUMN;
 
 name            return NAME;
+rows            return ROWS;
 type            return TYPE;
 "primary key"   return PRIMARYKEY;
+"foreign key"   return FOREIGNKEY;
+pool            return POOL;
 
 int             return INT;
 smallint        return SMALLINT;
@@ -68,7 +71,10 @@ numeric         return NUMERIC;
 real            return REAL;
 float           return FLOAT;
 char            return CHAR;
+varchar         return VARCHAR;
 datetime        return DATETIME;
+
+=>              return REFARROW;
 
 \"              {
                 yy_push_state(str);
@@ -198,6 +204,17 @@ datetime        return DATETIME;
                   }
                 }
 }
+
+[a-zA-Z_][0-9a-zA-Z_]* {
+                char *string = strdup(yytext);
+                if (!str)
+                  {
+                    yyerror(NULL, strerror(errno));
+                    exit(1);
+                  }
+                yylval.string = string;
+                return IDENTIFIER;
+                }
 
 0[0-7]*|0[xX][0-9a-fA-F]+|[1-9][0-9]* {
                 int errsv = errno;

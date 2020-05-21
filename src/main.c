@@ -24,10 +24,13 @@ main (int argc, char *argv[])
   struct arguments arguments = { NULL, 0, 1 };
   argp_parse(&argp, argc, argv, 0, 0, &arguments);
 
-  // parse schema
+  // initialize schema
   struct schema_t schema;
   schema_init(&schema);
 
+  schema.scale = arguments.scale;
+
+  // parse schema
   int res = schema_parse_from_file(&schema, arguments.schemafile);
   if (res)
     {

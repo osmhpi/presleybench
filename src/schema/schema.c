@@ -10,6 +10,8 @@
 void
 schema_init (struct schema_t *schema)
 {
+  schema->scale = 1;
+
   schema->tables = NULL;
   schema->ntables = 0;
 }
