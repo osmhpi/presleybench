@@ -1,8 +1,7 @@
 
 #include "schema/schema.h"
 
-#include "schema/property.h"
-#include "schema/parser.h"
+#include "schema/validate.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -10,41 +9,19 @@
 void
 schema_init (struct schema_t *schema)
 {
-  schema->scale = 1;
-
-  schema->tables = NULL;
-  schema->ntables = 0;
+  list_init(&schema->_tables);
 }
 
 void
 schema_fini (struct schema_t *schema)
 {
-  size_t i;
-  for (i = 0; i < schema->ntables; ++i)
-    {
-      table_fini(schema->tables[i]);
-      free(schema->tables[i]);
-      schema->tables[i] = NULL;
-    }
-
-  free(schema->tables);
-  schema->tables = NULL;
-  schema->ntables = 0;
+  list_fini(&schema->_tables, (void(*)(void*))&table_fini);
 }
 
 int
 schema_table_add (struct schema_t *schema, struct table_t *table)
 {
-  struct table_t **tables = realloc(schema->tables, sizeof(*schema->tables) * (schema->ntables + 1));
-
-  if (!tables)
-    return 1;
-
-  schema->tables = tables;
-  schema->tables[schema->ntables] = table;
-  schema->ntables++;
-
-  return 0;
+  return list_add(&schema->_tables, table);
 }
 
 extern FILE *yyin;
@@ -68,6 +45,11 @@ schema_parse_from_file (struct schema_t *schema, const char *filename)
 
   if (res)
     return 1;
+
+  // validate schema
+  res = validate_schema(schema);
+  if (res)
+    return res;
 
   return 0;
 }

@@ -3,18 +3,15 @@
 
 #include <stdlib.h>
 
-void
+int
 column_init (struct column_t *column)
 {
   column->name = NULL;
   column->type.name = DATATYPE_NONE;
   column->type.length = 0;
   column->primary_key = 0;
-  column->pool = 0;
-  column->poolref.type = REFERENCE_NONE;
-  column->poolref.ref = NULL;
-  column->poolarr.n = 0;
-  column->poolarr.str = NULL;
+
+  return valuepool_init(&column->pool, VALUEPOOL_NONE);
 }
 
 void
@@ -22,4 +19,9 @@ column_fini (struct column_t *column)
 {
   free(column->name);
   column->name = NULL;
+  column->type.name = DATATYPE_NONE;
+  column->type.length = 0;
+  column->primary_key = 0;
+
+  valuepool_fini(&column->pool);
 }

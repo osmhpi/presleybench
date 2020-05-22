@@ -1,8 +1,8 @@
 
 %{
 
-#include "schema/property.h"
-#include "schema/reference.h"
+#include "schema/parsertypes.h"
+#include "argparse.h"
 #include "schema/foreignkey.h"
 #include "schema/schema.h"
 
@@ -46,14 +46,53 @@ column_add_property (struct column_t *column, struct property_t property)
         column->primary_key = 1;
         break;
       case PROPERTY_POOL:
-        column->pool = property.number;
-        break;
+        {
+          int res = valuepool_init(&column->pool, VALUEPOOL_CAPACITY);
+          if (res)
+            return res;
+
+          column->pool.capacity = property.number;
+          break;
+        }
       case PROPERTY_POOLREF:
-        column->poolref = property.reference;
-        break;
+        {
+          if (property.reference.type != REFERENCE_COLUMN)
+            {
+              yyerror(NULL, "%s:%s: pool reference to something not a column", "<table>", column->name);
+              return 1;
+            }
+
+          struct column_t *c = property.reference.ref;
+
+          switch (c->pool.type)
+            {
+              case VALUEPOOL_CAPACITY:
+              case VALUEPOOL_STRINGS:
+                break;
+              case VALUEPOOL_REFERENCE:
+                yyerror(NULL, "%s:%s: pool reference to another pool reference", "<table>", column->name);
+                return 1;
+              default:
+                yyerror(NULL, "%s:%s: pool reference to uninitialized pool", "<table>", column->name);
+                return 1;
+            }
+
+          int res = valuepool_init(&column->pool, VALUEPOOL_REFERENCE);
+          if (res)
+            return res;
+
+          column->pool.ref = &c->pool;
+          break;
+        }
       case PROPERTY_POOLARR:
-        column->poolarr = property.stringlist;
-        break;
+        {
+          int res = valuepool_init(&column->pool, VALUEPOOL_STRINGS);
+          if (res)
+            return res;
+
+          column->pool._strings = property.list;
+          break;
+        }
       default:
         yyerror(NULL, "unrecognized poperty '%s' at column scope", strproperty(property.type));
         return 1;
@@ -82,11 +121,40 @@ table_add_property (struct table_t *table, struct property_t property)
               yyerror(NULL, "%s", strerror(errno));
               return 2;
             }
-          column_init(column);
+
+          int res = column_init(column);
+          if (res)
+            {
+              yyerror(NULL, "%s", strerror(errno));
+              free(column);
+              return res;
+            }
 
           *column = property.column;
 
-          int res = table_column_add(table, column);
+          res = table_column_add(table, column);
+          if (res)
+            {
+              yyerror(NULL, "%s", strerror(errno));
+              free(column);
+              return res;
+            }
+
+          break;
+        }
+      case PROPERTY_FOREIGNKEY:
+        {
+          struct foreignkey_t *fk = malloc(sizeof(*fk));
+          if (!fk)
+            {
+              yyerror(NULL, "%s", strerror(errno));
+              return 2;
+            }
+          foreignkey_init(fk);
+
+          *fk = property.foreignkey;
+
+          int res = table_foreignkey_add(table, fk);
           if (res)
             {
               yyerror(NULL, "%s", strerror(errno));
@@ -95,11 +163,7 @@ table_add_property (struct table_t *table, struct property_t property)
 
           break;
         }
-      case PROPERTY_FOREIGNKEY:
-        {
-
-          break;
-        }
+        break;
       default:
         yyerror(NULL, "unrecognized poperty '%s' at table scope", strproperty(property.type));
         return 1;
@@ -149,6 +213,7 @@ schema_add_property (struct schema_t *schema, struct property_t property)
 %union {
   char *string;
   int number;
+  struct list_t list;
   enum datatype_e typename;
   struct datatype_t datatype;
   struct column_t column;
@@ -156,8 +221,6 @@ schema_add_property (struct schema_t *schema, struct property_t property)
   struct property_t property;
   struct reference_t reference;
   struct foreignkey_t foreignkey;
-  struct columnlist_t columnlist;
-  struct stringlist_t stringlist;
 }
 
 %parse-param { struct schema_t *schema }
@@ -169,15 +232,17 @@ schema_add_property (struct schema_t *schema, struct property_t property)
 %token REFARROW
 %token NEWLINE
 
+%left '+' '-'
+%left '*' '/'
+
 %type<table> table table_definition table_parts
 %type<column> column column_definition column_parts
 %type<datatype> datatype length_datatype
 %type<typename> simple_typename length_typename
 %type<property> column_part table_part schema_part property
-%type<number> expression value
-%type<reference> reference
-%type<columnlist> column_list
-%type<stringlist> string_list string_array
+%type<number> expression
+%type<reference> reference qualified_name
+%type<list> column_list string_list string_array
 
 %start schema
 
@@ -246,7 +311,14 @@ column              : COLUMN vertical_space'{' column_definition '}'
 column_definition   : vertical_space column_parts vertical_space
                     { $$ = $2; }
                     | vertical_space
-                    { column_init(&$$); }
+                    {
+                      int res = column_init(&$$);
+                      if (res)
+                        {
+                          yyerror(NULL, "%s", strerror(errno));
+                          exit(res);
+                        }
+                    }
                     ;
 
 column_parts        : column_parts property_delimiter column_part
@@ -254,14 +326,20 @@ column_parts        : column_parts property_delimiter column_part
                       $$ = $1;
                       int res = column_add_property(&$$, $3);
                       if (res)
-                        exit(1);
+                        exit(res);
                     }
                     |                                 column_part
                     {
-                      column_init(&$$);
-                      int res = column_add_property(&$$, $1);
+                      int res = column_init(&$$);
                       if (res)
-                        exit(1);
+                        {
+                          yyerror(NULL, "%s", strerror(errno));
+                          exit(res);
+                        }
+
+                      res = column_add_property(&$$, $1);
+                      if (res)
+                        exit(res);
                     }
                     ;
 
@@ -282,8 +360,8 @@ property            : NAME '=' STRING
                     | POOL '=' reference
                     { $$.type = PROPERTY_POOLREF; $$.reference = $3; }
                     | POOL '=' string_array
-                    { $$.type = PROPERTY_POOLARR; $$.stringlist = $3; }
-                    | FOREIGNKEY column_list REFARROW reference '(' column_list ')'
+                    { $$.type = PROPERTY_POOLARR; $$.list = $3; }
+                    | FOREIGNKEY column_list REFARROW qualified_name '(' column_list ')'
                     {
                       $$.type = PROPERTY_FOREIGNKEY;
                       foreignkey_init(&$$.foreignkey);
@@ -295,21 +373,21 @@ property            : NAME '=' STRING
                         }
                       $$.foreignkey.rhs_table = $4.ref;
 
-                      $$.foreignkey.lhs = $2;
-                      $$.foreignkey.rhs = $6;
+                      $$.foreignkey._lhs = $2;
+                      $$.foreignkey._rhs = $6;
                     }
                     ;
 
 string_array        : '[' string_list ']'
                     { $$ = $2; }
                     | '[' /* empty */ ']'
-                    { stringlist_init(&$$); }
+                    { list_init(&$$); }
                     ;
 
 string_list         : string_list ',' STRING
                     {
                       $$ = $1;
-                      int res = stringlist_string_add(&$$, $3);
+                      int res = list_add(&$$, $3);
                       if (res)
                         {
                           yyerror(NULL, "%s", strerror(errno));
@@ -318,8 +396,8 @@ string_list         : string_list ',' STRING
                     }
                     | STRING
                     {
-                      stringlist_init(&$$);
-                      int res = stringlist_string_add(&$$, $1);
+                      list_init(&$$);
+                      int res = list_add(&$$, $1);
                       if (res)
                         {
                           yyerror(NULL, "%s", strerror(errno));
@@ -330,8 +408,8 @@ string_list         : string_list ',' STRING
 
 column_list         : IDENTIFIER
                     {
-                      columnlist_init(&$$);
-                      int res = columnlist_column_add(&$$, $1);
+                      list_init(&$$);
+                      int res = list_add(&$$, $1);
                       if (res)
                         {
                           yyerror(NULL, "%s", strerror(errno));
@@ -341,7 +419,7 @@ column_list         : IDENTIFIER
                     | column_list ',' IDENTIFIER
                     {
                       $$ = $1;
-                      int res = columnlist_column_add(&$$, $3);
+                      int res = list_add(&$$, $3);
                       if (res)
                         {
                           yyerror(NULL, "%s", strerror(errno));
@@ -350,23 +428,47 @@ column_list         : IDENTIFIER
                     }
                     ;
 
-expression          : value
-                    { $$ = $1; }
+expression          : expression '+' expression
+                    { $$ = $1 + $3; }
+                    | expression '-' expression
+                    { $$ = $1 - $3; }
                     | expression '*' expression
                     { $$ = $1 * $3; }
+                    | expression '/' expression
+                    { $$ = $1 / $3; }
+                    | '(' expression ')'
+                    { $$ = $2; }
+                    | NUMBER
+                    { $$ = $1; }
+                    | IDENTIFIER
+                    {
+                      if (!strcmp($1, "S"))
+                        $$ = arguments.scale;
+                      else
+                        {
+                          yyerror(NULL, "unrecognized identifier '%s'", $1);
+                          exit(1);
+                        }
+
+                      free($1);
+                    }
                     ;
 
-reference           : IDENTIFIER
+reference           : '&' qualified_name
+                    { $$ = $2; }
+                    ;
+
+qualified_name      : IDENTIFIER
                     {
                       $$.ref = NULL;
 
                       size_t i;
-                      for (i = 0; i < schema->ntables; ++i)
+                      for (i = 0; i < schema->tables.n; ++i)
                         {
-                          if (!strcmp($1, schema->tables[i]->name))
+                          if (!strcmp($1, schema->tables.tables[i]->name))
                             {
                               $$.type = REFERENCE_TABLE;
-                              $$.ref = schema->tables[i];
+                              $$.ref = schema->tables.tables[i];
                             }
                         }
 
@@ -375,8 +477,10 @@ reference           : IDENTIFIER
                           yyerror(NULL, "referenced table '%s' not found in schema", $1);
                           exit(1);
                         }
+
+                      free($1);
                     }
-                    | reference '.' IDENTIFIER
+                    | qualified_name '.' IDENTIFIER
                     {
                       $$.ref = NULL;
 
@@ -384,12 +488,12 @@ reference           : IDENTIFIER
                       switch ($1.type)
                         {
                           case REFERENCE_TABLE:
-                            for (i = 0; i < ((struct table_t*)$1.ref)->ncolumns; ++i)
+                            for (i = 0; i < ((struct table_t*)$1.ref)->columns.n; ++i)
                               {
-                                if (!strcmp($3, ((struct table_t*)$1.ref)->columns[i]->name))
+                                if (!strcmp($3, ((struct table_t*)$1.ref)->columns.columns[i]->name))
                                   {
                                     $$.type = REFERENCE_COLUMN;
-                                    $$.ref = ((struct table_t*)$1.ref)->columns[i];
+                                    $$.ref = ((struct table_t*)$1.ref)->columns.columns[i];
                                   }
                               }
 
@@ -404,20 +508,8 @@ reference           : IDENTIFIER
                             yyerror(NULL, "unable to resolve reference '%s' in something not a schema or a table", $3);
                             exit(1);
                         }
-                    }
-                    ;
 
-value               : NUMBER
-                    { $$ = $1; }
-                    | IDENTIFIER
-                    {
-                      if (!strcmp($1, "S"))
-                        $$ = schema->scale;
-                      else
-                        {
-                          yyerror(NULL, "unrecognized identifier '%s'", $1);
-                          exit(1);
-                        }
+                      free($3);
                     }
                     ;
 

@@ -1,10 +1,31 @@
-#ifndef PROPERTY_H
-#define PROPERTY_H
+#ifndef PARSERTYPES_H
+#define PARSERTYPES_H
 
+#include "util/list.h"
+
+#include "schema/datatype.h"
+#include "schema/column.h"
 #include "schema/table.h"
-#include "schema/reference.h"
 #include "schema/foreignkey.h"
-#include "schema/stringlist.h"
+
+struct list_string_t
+{
+  size_t n;
+  char **str;
+};
+
+enum reference_e
+{
+  REFERENCE_NONE,
+  REFERENCE_TABLE,
+  REFERENCE_COLUMN,
+};
+
+struct reference_t
+{
+  enum reference_e type;
+  void *ref;
+};
 
 enum property_e
 {
@@ -31,7 +52,7 @@ struct property_t
     struct table_t table;
     struct reference_t reference;
     struct foreignkey_t foreignkey;
-    struct stringlist_t stringlist;
+    struct list_t list;
   };
 };
 

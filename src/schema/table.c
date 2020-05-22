@@ -8,8 +8,9 @@ table_init (struct table_t *table)
 {
   table->name = NULL;
   table->rows = 0;
-  table->columns = NULL;
-  table->ncolumns = 0;
+
+  list_init(&table->_columns);
+  list_init(&table->_fks);
 }
 
 void
@@ -18,31 +19,18 @@ table_fini (struct table_t *table)
   free(table->name);
   table->name = NULL;
 
-  size_t i;
-  for (i = 0; i < table->ncolumns; ++i)
-    {
-      column_fini(table->columns[i]);
-      free(table->columns[i]);
-      table->columns[i] = NULL;
-    }
-
-  free(table->columns);
-  table->columns = NULL;
-  table->ncolumns = 0;
+  list_fini(&table->_columns, (void(*)(void*))&column_fini);
+  list_fini(&table->_fks, (void(*)(void*))&foreignkey_fini);
 }
 
 int
 table_column_add (struct table_t *table, struct column_t *column)
 {
-  struct column_t **columns = realloc(table->columns, sizeof(*table->columns) * (table->ncolumns + 1));
-
-  if (!columns)
-    return 1;
-
-  table->columns = columns;
-  table->columns[table->ncolumns] = column;
-  table->ncolumns++;
-
-  return 0;
+  return list_add(&table->_columns, column);
 }
 
+int
+table_foreignkey_add (struct table_t *table, struct foreignkey_t *fk)
+{
+  return list_add(&table->_fks, fk);
+}

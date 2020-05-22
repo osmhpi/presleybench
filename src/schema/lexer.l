@@ -3,7 +3,7 @@
 
 #include "schema/schema.h"
 
-#include "schema/property.h"
+#include "schema/parsertypes.h"
 #include "schema/parser.h"
 
 #include <errno.h>

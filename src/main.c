@@ -1,9 +1,8 @@
 
 #include "main.h"
 
+#include "argparse.h"
 #include "schema/schema.h"
-#include "schema/validate.h"
-
 #include "data/generate.h"
 
 #include <errno.h>
@@ -21,27 +20,19 @@ main (int argc, char *argv[])
   #endif
 
   // parse arguments
-  struct arguments arguments = { NULL, 0, 1 };
-  argp_parse(&argp, argc, argv, 0, 0, &arguments);
+  argparse(argc, argv);
 
-  // initialize schema
+  // initialize schema structure
   struct schema_t schema;
   schema_init(&schema);
 
-  schema.scale = arguments.scale;
-
-  // parse schema
+  // parse schema from file
   int res = schema_parse_from_file(&schema, arguments.schemafile);
   if (res)
     {
       fprintf(stderr, "%s: %s: %s\n", program_invocation_name, arguments.schemafile, strerror(errno));
       return res;
     }
-
-  // validate schema
-  res = validate_schema(&schema);
-  if (res)
-    return res;
 
   // generate data
   res = generate_schema_data(&schema);

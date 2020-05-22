@@ -1,16 +1,20 @@
 #ifndef SCHEMA_H
 #define SCHEMA_H
 
+#include "util/list.h"
 #include "schema/table.h"
 
 #include <stddef.h>
 
 struct schema_t
 {
-  size_t scale;
-
-  struct table_t **tables;
-  size_t ntables;
+  union {
+    struct list_t _tables;
+    struct {
+      size_t n;
+      struct table_t **tables;
+    } tables;
+  };
 };
 
 void schema_init (struct schema_t*);

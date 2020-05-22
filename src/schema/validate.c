@@ -15,9 +15,9 @@ int
 validate_schema (struct schema_t *schema)
 {
   size_t i;
-  for (i = 0; i < schema->ntables; ++i)
+  for (i = 0; i < schema->tables.n; ++i)
     {
-      struct table_t *table = schema->tables[i];
+      struct table_t *table = schema->tables.tables[i];
       if (!table->name)
         {
           int len = snprintf(NULL, 0, "table#%zu", i);
@@ -46,9 +46,9 @@ int
 validate_table (struct table_t *table)
 {
   size_t i;
-  for (i = 0; i < table->ncolumns; ++i)
+  for (i = 0; i < table->columns.n; ++i)
     {
-      struct column_t *column = table->columns[i];
+      struct column_t *column = table->columns.columns[i];
       if (!column->name)
         {
           int len = snprintf(NULL, 0, "column#%zu", i);

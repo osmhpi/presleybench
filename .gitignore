@@ -6,8 +6,11 @@
 src/schema/lexer.c
 src/schema/parser.c
 src/schema/parser.h
+src/schema/parser.output
 
 *.schema
+
+TODO
 
 # built programs
 presleybench
