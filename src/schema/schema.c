@@ -2,6 +2,7 @@
 #include "schema/schema.h"
 
 #include "schema/validate.h"
+#include "schema/dump.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -48,6 +49,11 @@ schema_parse_from_file (struct schema_t *schema, const char *filename)
 
   // validate schema
   res = validate_schema(schema);
+  if (res)
+    return res;
+
+  // dump schema to file
+  res = dump_schema(schema);
   if (res)
     return res;
 

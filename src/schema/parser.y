@@ -37,6 +37,8 @@ column_add_property (struct column_t *column, struct property_t property)
   switch (property.type)
     {
       case PROPERTY_NAME:
+        if (column->name)
+          free(column->name);
         column->name = property.string;
         break;
       case PROPERTY_TYPE:
@@ -47,15 +49,22 @@ column_add_property (struct column_t *column, struct property_t property)
         break;
       case PROPERTY_POOL:
         {
+          if (column->pool.type != VALUEPOOL_NONE)
+            valuepool_fini(&column->pool);
+
           int res = valuepool_init(&column->pool, VALUEPOOL_CAPACITY);
           if (res)
             return res;
 
           column->pool.capacity = property.number;
+
           break;
         }
       case PROPERTY_POOLREF:
         {
+          if (column->pool.type != VALUEPOOL_NONE)
+            valuepool_fini(&column->pool);
+
           if (property.reference.type != REFERENCE_COLUMN)
             {
               yyerror(NULL, "%s:%s: pool reference to something not a column", "<table>", column->name);
@@ -82,15 +91,20 @@ column_add_property (struct column_t *column, struct property_t property)
             return res;
 
           column->pool.ref = &c->pool;
+
           break;
         }
       case PROPERTY_POOLARR:
         {
+          if (column->pool.type != VALUEPOOL_NONE)
+            valuepool_fini(&column->pool);
+
           int res = valuepool_init(&column->pool, VALUEPOOL_STRINGS);
           if (res)
             return res;
 
           column->pool._strings = property.list;
+
           break;
         }
       default:
@@ -108,6 +122,8 @@ table_add_property (struct table_t *table, struct property_t property)
   switch (property.type)
     {
       case PROPERTY_NAME:
+        if (table->name)
+          free(table->name);
         table->name = property.string;
         break;
       case PROPERTY_ROWS:
@@ -136,6 +152,7 @@ table_add_property (struct table_t *table, struct property_t property)
           if (res)
             {
               yyerror(NULL, "%s", strerror(errno));
+              column_fini(column);
               free(column);
               return res;
             }
@@ -154,10 +171,70 @@ table_add_property (struct table_t *table, struct property_t property)
 
           *fk = property.foreignkey;
 
+          if (fk->rhs.n != fk->lhs.n)
+            {
+              yyerror(NULL, "%s: foreign key size mismatch", table->name);
+              foreignkey_fini(fk);
+              free(fk);
+              return 1;
+            }
+
+          fk->lhs.columns = malloc(sizeof(*fk->lhs.columns) * fk->lhs.n);
+          if (!fk->lhs.columns)
+            {
+              yyerror(NULL, "%s", strerror(errno));
+              foreignkey_fini(fk);
+              free(fk);
+              return 2;
+            }
+
+          fk->rhs.columns = malloc(sizeof(*fk->rhs.columns) * fk->rhs.n);
+          if (!fk->rhs.columns)
+            {
+              yyerror(NULL, "%s", strerror(errno));
+              foreignkey_fini(fk);
+              free(fk);
+              return 2;
+            }
+
+          size_t i;
+          for (i = 0; i < fk->lhs.n; ++i)
+            {
+              char *name = fk->lhs.names[i];
+              struct column_t *c = table_get_column_by_name(table, name);
+
+              if (!c)
+                {
+                  yyerror(NULL, "%s: unable to resolve foreign key lhs '%s'", table->name, name);
+                  foreignkey_fini(fk);
+                  free(fk);
+                  return 1;
+                }
+
+              fk->lhs.columns[i] = c;
+            }
+
+          for (i = 0; i < fk->rhs.n; ++i)
+            {
+              char *name = fk->rhs.names[i];
+              struct column_t *c = table_get_column_by_name(fk->rhs_table, name);
+
+              if (!c)
+                {
+                  yyerror(NULL, "%s: unable to resolve foreign key rhs '%s.%s'", table->name, fk->rhs_table->name, name);
+                  foreignkey_fini(fk);
+                  free(fk);
+                  return 1;
+                }
+
+              fk->rhs.columns[i] = c;
+            }
+
           int res = table_foreignkey_add(table, fk);
           if (res)
             {
               yyerror(NULL, "%s", strerror(errno));
+              free(fk);
               return res;
             }
 

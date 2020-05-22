@@ -34,6 +34,9 @@ validate_schema (struct schema_t *schema)
             }
           snprintf(table->name, len + 1, "table#%zu", i);
         }
+
+      table->parent = schema;
+
       int res = validate_table(table);
       if (res)
         return res;
@@ -65,9 +68,19 @@ validate_table (struct table_t *table)
             }
           snprintf(column->name, len + 1, "column#%zu", i);
         }
+
+      column->parent = table;
+
       int res = validate_column(column);
       if (res)
         return res;
+    }
+
+  for (i = 0; i < table->fks.n; ++i)
+    {
+      struct foreignkey_t *fk = table->fks.fks[i];
+
+      fk->lhs_table = table;
     }
 
   return 0;
@@ -78,6 +91,8 @@ validate_column (struct column_t *column)
 {
   if (column->type.name == DATATYPE_NONE)
     column->type.name = DATATYPE_SMALLINT;
+
+  column->pool.column = column;
 
   return 0;
 }

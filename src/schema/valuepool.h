@@ -11,9 +11,13 @@ enum valuepool_e
   VALUEPOOL_STRINGS,
 };
 
+struct column_t;
+
 struct valuepool_t
 {
   enum valuepool_e type;
+
+  struct column_t *column;
 
   union {
     size_t capacity;

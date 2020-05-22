@@ -22,6 +22,7 @@ presleybench_SOURCES = \
   src/schema/foreignkey.c src/schema/foreignkey.h \
   src/schema/valuepool.c src/schema/valuepool.h \
   src/schema/validate.c src/schema/validate.h \
+  src/schema/dump.c src/schema/dump.h \
   src/schema/tpcc.c src/schema/tpcc.h \
   src/data/generate.c src/data/generate.h
 

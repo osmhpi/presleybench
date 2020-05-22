@@ -25,6 +25,8 @@ valuepool_init (struct valuepool_t *pool, enum valuepool_e type)
     }
 
   pool->type = type;
+  pool->column = NULL;
+
   return 0;
 }
 
@@ -48,4 +50,5 @@ valuepool_fini (struct valuepool_t *pool)
     }
 
   pool->type = VALUEPOOL_NONE;
+  pool->column = NULL;
 }

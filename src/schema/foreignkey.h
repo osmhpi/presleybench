@@ -16,7 +16,7 @@ struct foreignkey_t
     struct {
       size_t n;
       char **names;
-      struct column_t *columns;
+      struct column_t **columns;
     } lhs;
   };
 
@@ -25,7 +25,7 @@ struct foreignkey_t
     struct {
       size_t n;
       char **names;
-      struct column_t *columns;
+      struct column_t **columns;
     } rhs;
   };
 };

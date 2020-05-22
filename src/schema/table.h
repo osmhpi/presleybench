@@ -7,9 +7,13 @@
 
 #include <stddef.h>
 
+struct schema_t;
+
 struct table_t
 {
   char *name;
+  struct schema_t *parent;
+
   size_t rows;
 
   union {
@@ -36,5 +40,7 @@ void table_fini (struct table_t*);
 int table_column_add (struct table_t*, struct column_t*);
 
 int table_foreignkey_add (struct table_t*, struct foreignkey_t*);
+
+struct column_t* table_get_column_by_name (struct table_t*, const char*);
 
 #endif
