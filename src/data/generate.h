@@ -3,6 +3,8 @@
 
 #include "schema/schema.h"
 
-int generate_schema_data (struct schema_t*);
+#include "util/assert.h"
+
+int generate_schema_data (struct schema_t*) att_warn_unused_result;
 
 #endif

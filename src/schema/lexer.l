@@ -1,6 +1,8 @@
 
 %{
 
+#include "util/assert.h"
+#include "util/string.h"
 #include "schema/schema.h"
 
 #include "schema/parsertypes.h"
@@ -10,38 +12,20 @@
 #include <string.h>
 #include <stdarg.h>
 
-static int
-strapp (char **buf, size_t *len, const char *format, ...)
-{
-  va_list ap;
-
-  va_start(ap, format);
-  int addlen = vsnprintf(NULL, 0, format, ap);
-  va_end(ap);
-
-  if (addlen < 0)
-    return 1;
-
-  char *newstr = realloc(*buf, sizeof(**buf) * (*len + addlen + 1));
-  if (!newstr)
-    return 2;
-
-  va_start(ap, format);
-  vsnprintf(newstr + *len, addlen + 1, format, ap);
-  va_end(ap);
-
-  *buf = newstr;
-  *len += addlen;
-
-  return 0;
-}
-
-extern int yyerror (struct schema_t*, const char*);
+extern int yyerror (struct schema_t*, const char*, ...) att_format(printf, 2, 3);
 
 char *string_buf = NULL;
 size_t string_len = 0;
 
-static int yy_top_state(void) __attribute__((unused));
+static int yy_top_state(void) att_unused;
+
+static void
+clear_buf (void)
+{
+  free(string_buf);
+  string_buf = NULL;
+  string_len = 0;
+}
 
 %}
 
@@ -78,8 +62,7 @@ datetime        return DATETIME;
 
 \"              {
                 yy_push_state(str);
-                string_buf = NULL;
-                string_len = 0;
+                clear_buf();
                 }
 <str>{
 \"              {
@@ -91,126 +74,115 @@ datetime        return DATETIME;
                 }
 \n              {
                 yyerror(NULL, "unterminated string constant");
-                free(string_buf);
-                string_buf = NULL;
-                string_len = 0;
-                exit(2);
+                clear_buf();
+                return -1;
                 }
 \\[0-7]{1,3}    {
                 int oct;
-                  scanf(yytext + 1, "%o", &oct);
-
-                if (oct > 0xff)
+                guard (1 == scanf(yytext + 1, "%o", &oct)) else
                   {
-                    yyerror(NULL, "octal escape out of bounds");
-                    free(string_buf);
-                    string_buf = NULL;
-                    string_len = 0;
-                    exit(2);
+                    yyerror(NULL, "invalid escape sequence: '%s'", yytext);
+                    guard (0 <= astrcat(&string_buf, &string_len, "<?>")) else
+                      {
+                        yyerror(NULL, NULL);
+                        clear_buf();
+                        return -1;
+                      }
+                    YY_BREAK;
                   }
 
-                int res = strapp(&string_buf, &string_len, "%i", oct);
-                if (res)
+                guard (oct > 0xff) else
                   {
-                    yyerror(NULL, strerror(errno));
-                    free(string_buf);
-                    string_buf = NULL;
-                    string_len = 0;
-                    exit(2);
+                    yyerror(NULL, "octal escape out of bounds: '%s'", yytext);
+                    guard (0 <= astrcat(&string_buf, &string_len, "<?>")) else
+                      {
+                        yyerror(NULL, NULL);
+                        clear_buf();
+                        return -1;
+                      }
+                    YY_BREAK;
+                  }
+
+                guard (0 <= astrcat(&string_buf, &string_len, "%i", oct)) else
+                  {
+                    yyerror(NULL, NULL);
+                    clear_buf();
+                    return -1;
                   }
                 }
 \\[0-9]+        {
-                yyerror(NULL, "bad escape sequence");
-                free(string_buf);
-                string_buf = NULL;
-                string_len = 0;
-                exit(2);
+                yyerror(NULL, "bad escape sequence '%s'", yytext);
+                guard (0 <= astrcat(&string_buf, &string_len, "<?>")) else
+                  {
+                    yyerror(NULL, NULL);
+                    clear_buf();
+                    return -1;
+                  }
                 }
 \\n             {
-                int res = strapp(&string_buf, &string_len, "\n");
-                if (res)
+                guard (0 <= astrcat(&string_buf, &string_len, "\n")) else
                   {
-                    yyerror(NULL, strerror(errno));
-                    free(string_buf);
-                    string_buf = NULL;
-                    string_len = 0;
-                    exit(2);
+                    yyerror(NULL, NULL);
+                    clear_buf();
+                    return -1;
                   }
                 }
 \\t             {
-                int res = strapp(&string_buf, &string_len, "\t");
-                if (res)
+                guard (0 <= astrcat(&string_buf, &string_len, "\t")) else
                   {
-                    yyerror(NULL, strerror(errno));
-                    free(string_buf);
-                    string_buf = NULL;
-                    string_len = 0;
-                    exit(2);
+                    yyerror(NULL, NULL);
+                    clear_buf();
+                    return -1;
                   }
                 }
 \\r             {
-                int res = strapp(&string_buf, &string_len, "\r");
-                if (res)
+                guard (0 <= astrcat(&string_buf, &string_len, "\r")) else
                   {
-                    yyerror(NULL, strerror(errno));
-                    free(string_buf);
-                    string_buf = NULL;
-                    string_len = 0;
-                    exit(2);
+                    yyerror(NULL, NULL);
+                    clear_buf();
+                    return -1;
                   }
                 }
 \\b             {
-                int res = strapp(&string_buf, &string_len, "\b");
-                if (res)
+                guard (0 <= astrcat(&string_buf, &string_len, "\b")) else
                   {
-                    yyerror(NULL, strerror(errno));
-                    free(string_buf);
-                    string_buf = NULL;
-                    string_len = 0;
-                    exit(2);
+                    yyerror(NULL, NULL);
+                    clear_buf();
+                    return -1;
                   }
                 }
 \\f             {
-                int res = strapp(&string_buf, &string_len, "\f");
-                if (res)
+                guard (0 <= astrcat(&string_buf, &string_len, "\f")) else
                   {
-                    yyerror(NULL, strerror(errno));
-                    free(string_buf);
-                    string_buf = NULL;
-                    string_len = 0;
-                    exit(2);
+                    yyerror(NULL, NULL);
+                    clear_buf();
+                    return -1;
                   }
                 }
 \\(.|\n)        {
-                int res = strapp(&string_buf, &string_len, "%c", yytext[1]);
-                if (res)
+                guard (0 <= astrcat(&string_buf, &string_len, "%c", yytext[1])) else
                   {
-                    yyerror(NULL, strerror(errno));
-                    free(string_buf);
-                    string_buf = NULL;
-                    string_len = 0;
-                    exit(2);
+                    yyerror(NULL, NULL);
+                    clear_buf();
+                    return -1;
                   }
                 }
 [^\\\n\"]+      {
-                int res = strapp(&string_buf, &string_len, "%s", yytext);
-                if (res)
+                guard (0 <= astrcat(&string_buf, &string_len, "%s", yytext)) else
                   {
-                    yyerror(NULL, strerror(errno));
-                    free(string_buf);
-                    string_buf = NULL;
-                    string_len = 0;
-                    exit(2);
+                    yyerror(NULL, NULL);
+                    clear_buf();
+                    return -1;
                   }
                 }
 }
 
 [a-zA-Z_][0-9a-zA-Z_]* {
-                char *string = strdup(yytext);
-                if (!str)
+                char *string;
+                guard (NULL != (string = strdup(yytext))) else
                   {
-                    yyerror(NULL, strerror(errno));
-                    exit(1);
+                    yyerror(NULL, NULL);
+                    return -1;
                   }
                 yylval.string = string;
                 return IDENTIFIER;
@@ -219,11 +191,11 @@ datetime        return DATETIME;
 0[0-7]*|0[xX][0-9a-fA-F]+|[1-9][0-9]* {
                 int errsv = errno;
                 errno = 0;
-                unsigned long num = strtoul(yytext, NULL, 0);
-                if (errno)
+                unsigned long num;
+                guard (0 == ((num = strtoul(yytext, NULL, 0)), errno)) else
                   {
-                    yyerror(NULL, strerror(errno));
-                    exit(1);
+                    yyerror(NULL, "invalid integer literal: '%s'", yytext);
+                    num = 0;
                   }
                 yylval.number = num;
                 errno = errsv;

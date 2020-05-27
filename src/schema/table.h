@@ -2,6 +2,7 @@
 #define TABLE_H
 
 #include "util/list.h"
+#include "util/assert.h"
 #include "schema/column.h"
 #include "schema/foreignkey.h"
 
@@ -37,10 +38,10 @@ void table_init (struct table_t*);
 
 void table_fini (struct table_t*);
 
-int table_column_add (struct table_t*, struct column_t*);
+int table_column_add (struct table_t*, struct column_t*) att_warn_unused_result;
 
-int table_foreignkey_add (struct table_t*, struct foreignkey_t*);
+int table_foreignkey_add (struct table_t*, struct foreignkey_t*) att_warn_unused_result;
 
-struct column_t* table_get_column_by_name (struct table_t*, const char*);
+struct column_t* table_get_column_by_name (struct table_t*, const char*) att_warn_unused_result;
 
 #endif

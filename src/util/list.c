@@ -1,6 +1,8 @@
 
 #include "util/list.h"
 
+#include "util/assert.h"
+
 #include <stdlib.h>
 
 void
@@ -36,9 +38,8 @@ list_fini_shallow (struct list_t *list)
 int
 list_add (struct list_t *list, void *e)
 {
-  void **tmp = realloc(list->e, sizeof(*tmp) * (list->n + 1));
-  if (!tmp)
-    return 2;
+  void **tmp;
+  guard (NULL != (tmp = realloc(list->e, sizeof(*tmp) * (list->n + 1)))) else { return 2; }
 
   tmp[list->n] = e;
   list->e = tmp;

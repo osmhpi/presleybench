@@ -2,6 +2,7 @@
 #define VALUEPOOL_H
 
 #include "util/list.h"
+#include "util/assert.h"
 
 enum valuepool_e
 {
@@ -32,7 +33,7 @@ struct valuepool_t
   };
 };
 
-int valuepool_init (struct valuepool_t*, enum valuepool_e);
+int valuepool_init (struct valuepool_t*, enum valuepool_e) att_warn_unused_result;
 
 void valuepool_fini (struct valuepool_t*);
 

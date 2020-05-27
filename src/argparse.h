@@ -3,6 +3,8 @@
 
 #include "main.h"
 
+#include "util/assert.h"
+
 #include <argp.h>
 
 struct arguments_t
@@ -14,6 +16,6 @@ struct arguments_t
 
 extern struct arguments_t arguments;
 
-int argparse (int argc, char *argv[]);
+int argparse (int argc, char *argv[]) att_warn_unused_result;
 
 #endif

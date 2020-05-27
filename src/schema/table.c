@@ -1,6 +1,8 @@
 
 #include "schema/table.h"
 
+#include "util/assert.h"
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -32,13 +34,17 @@ table_fini (struct table_t *table)
 int
 table_column_add (struct table_t *table, struct column_t *column)
 {
-  return list_add(&table->_columns, column);
+  int res;
+  debug_guard (0 == (res = list_add(&table->_columns, column)));
+  return res;
 }
 
 int
 table_foreignkey_add (struct table_t *table, struct foreignkey_t *fk)
 {
-  return list_add(&table->_fks, fk);
+  int res;
+  debug_guard (0 == (res = list_add(&table->_fks, fk)));
+  return res;
 }
 
 struct column_t*

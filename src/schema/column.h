@@ -1,6 +1,7 @@
 #ifndef COLUMN_H
 #define COLUMN_H
 
+#include "util/assert.h"
 #include "schema/datatype.h"
 #include "schema/valuepool.h"
 
@@ -17,7 +18,7 @@ struct column_t
   int primary_key;
 };
 
-int column_init (struct column_t*);
+int column_init (struct column_t*) att_warn_unused_result;
 
 void column_fini (struct column_t*);
 

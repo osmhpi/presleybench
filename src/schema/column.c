@@ -1,6 +1,8 @@
 
 #include "schema/column.h"
 
+#include "util/assert.h"
+
 #include <stdlib.h>
 
 int
@@ -12,9 +14,12 @@ column_init (struct column_t *column)
   column->type.name = DATATYPE_NONE;
   column->type.length = 0;
 
-  return valuepool_init(&column->pool, VALUEPOOL_NONE);
+  int res;
+  guard (0 == (res = valuepool_init(&column->pool, VALUEPOOL_NONE))) else { return res; }
 
   column->primary_key = 0;
+
+  return 0;
 }
 
 void

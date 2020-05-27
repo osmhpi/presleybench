@@ -2,6 +2,7 @@
 #define PARSERTYPES_H
 
 #include "util/list.h"
+#include "util/assert.h"
 
 #include "schema/datatype.h"
 #include "schema/column.h"
@@ -25,6 +26,7 @@ struct reference_t
 {
   enum reference_e type;
   void *ref;
+  char *string;
 };
 
 enum property_e
@@ -56,6 +58,10 @@ struct property_t
   };
 };
 
-const char *strproperty (enum property_e);
+const char *strproperty (enum property_e) att_warn_unused_result;
+
+int column_add_property (struct column_t*, struct property_t) att_warn_unused_result;
+int table_add_property (struct table_t*, struct property_t) att_warn_unused_result;
+int schema_add_property (struct schema_t*, struct property_t) att_warn_unused_result;
 
 #endif

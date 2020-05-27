@@ -1,6 +1,8 @@
 
 #include "schema/valuepool.h"
 
+#include "util/assert.h"
+
 #include <errno.h>
 
 int
@@ -20,6 +22,7 @@ valuepool_init (struct valuepool_t *pool, enum valuepool_e type)
         list_init(&pool->_strings);
         break;
       default:
+        debug_error("unexpected value for 'type': '%i'", type);
         errno = EINVAL;
         return 1;
     }
@@ -35,6 +38,8 @@ valuepool_fini (struct valuepool_t *pool)
 {
   switch(pool->type)
     {
+      case VALUEPOOL_NONE:
+        break;
       case VALUEPOOL_CAPACITY:
         pool->capacity = 0;
         break;
@@ -45,7 +50,7 @@ valuepool_fini (struct valuepool_t *pool)
         list_fini(&pool->_strings, NULL);
         break;
       default:
-        // pool is corrupted. this may leak memory!
+        debug_error("pool is corrupted. this may leak memory! 'type': '%i'", pool->type);
         break;
     }
 

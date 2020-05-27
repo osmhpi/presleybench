@@ -2,6 +2,7 @@
 #include "main.h"
 
 #include "argparse.h"
+#include "util/assert.h"
 #include "schema/schema.h"
 #include "data/generate.h"
 
@@ -20,24 +21,30 @@ main (int argc, char *argv[])
   #endif
 
   // parse arguments
-  argparse(argc, argv);
+  int res;
+  guard (0 == (res = argparse(argc, argv))) else
+    {
+      runtime_error("failed to comprehend command line arguments");
+      return res;
+    }
 
   // initialize schema structure
   struct schema_t schema;
   schema_init(&schema);
 
   // parse schema from file
-  int res = schema_parse_from_file(&schema, arguments.schemafile);
-  if (res)
+  guard (0 == (res = schema_parse_from_file(&schema, arguments.schemafile))) else
     {
-      fprintf(stderr, "%s: %s: %s\n", program_invocation_name, arguments.schemafile, strerror(errno));
+      runtime_error("%s: failed to parse schema", arguments.schemafile);
       return res;
     }
 
   // generate data
-  res = generate_schema_data(&schema);
-  if (res)
-    return res;
+  guard (0 == (res = generate_schema_data(&schema))) else
+    {
+      runtime_error("%s: failed to generate data", arguments.schemafile);
+      return res;
+    }
 
   // cleanup
   schema_fini(&schema);

@@ -3,6 +3,8 @@
 
 #include "schema/schema.h"
 
-int dump_schema (struct schema_t*);
+#include <stdio.h>
+
+void dump_schema (struct schema_t*, FILE*);
 
 #endif

@@ -9,6 +9,7 @@ src/schema/parser.h
 src/schema/parser.output
 
 *.schema
+.*.schema.dump
 
 TODO
 

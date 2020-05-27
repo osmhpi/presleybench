@@ -13,6 +13,8 @@ presleybench_SOURCES = \
   src/main.c src/main.h \
   src/argparse.c src/argparse.h \
   src/util/list.c src/util/list.h \
+  src/util/assert.c src/util/assert.h \
+  src/util/string.c src/util/string.h \
   src/schema/lexer.l src/schema/parser.y \
   src/schema/parsertypes.c src/schema/parsertypes.h \
   src/schema/schema.c src/schema/schema.h \

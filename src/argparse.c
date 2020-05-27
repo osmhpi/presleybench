@@ -1,6 +1,7 @@
 
 #include "argparse.h"
 
+#include "util/assert.h"
 #include "schema/tpcc.h"
 
 #include <stdio.h>
@@ -35,16 +36,13 @@ parse_opt (int key, char *arg, struct argp_state *state)
       exit(0);
     case 's':
       {
-        int errsv = errno;
-        errno = 0;
-        unsigned int scale = strtol(arg, NULL, 0);
-        if (errno)
+        int errsv = errno; errno = 0;
+        guard (0 == ((args->scale = strtol(arg, NULL, 0)), errno)) else
           {
-            fprintf(stderr, "%s: invalid scale factor: '%s': %s\n", program_invocation_name, arg, strerror(errno));
-            exit(1);
+            runtime_error("invalid scale factor: '%s'", arg);
+            return 1;
           }
         errno = errsv;
-        args->scale = scale;
         break;
       }
     case 'v':
@@ -55,14 +53,21 @@ parse_opt (int key, char *arg, struct argp_state *state)
       break;
     case ARGP_KEY_ARG:
       if (state->arg_num > 1)
-        argp_usage(state);
+        {
+          debug_error("unexpected positional argument");
+          argp_usage(state);
+        }
       args->schemafile = arg;
       break;
     case ARGP_KEY_END:
       if (state->arg_num != 1)
-        argp_usage(state);
+        {
+          debug_error("unexpected end of arguments");
+          argp_usage(state);
+        }
       break;
     default:
+      debug_error("unrecognized argument key: '%i'", key);
       return ARGP_ERR_UNKNOWN;
     }
 
@@ -76,5 +81,7 @@ struct arguments_t arguments = { NULL, 0, 1 };
 int
 argparse (int argc, char *argv[])
 {
-  return argp_parse(&argp, argc, argv, 0, 0, &arguments);
+  int res;
+  debug_guard (0 == (res = argp_parse(&argp, argc, argv, 0, 0, &arguments)));
+  return res;
 }

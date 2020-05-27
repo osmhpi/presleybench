@@ -1,20 +1,14 @@
 
 #include "schema/dump.h"
 
-#include <stdio.h>
-
 static void dump_table (struct table_t*, FILE*);
 static void dump_column (struct column_t*, FILE*);
 static void dump_foreignkey (struct foreignkey_t*, FILE*);
 static void dump_valuepool (struct valuepool_t*, FILE*);
 
-int
-dump_schema (struct schema_t *schema)
+void
+dump_schema (struct schema_t *schema, FILE *out)
 {
-  FILE *out = fopen(".schema", "w");
-  if (!out)
-    return 1;
-
   fprintf(out, "schema ntables: %zu\n", schema->tables.n);
 
   size_t i;
@@ -25,10 +19,6 @@ dump_schema (struct schema_t *schema)
       fprintf(out, "\ntable #%zu:\n", i);
       dump_table(table, out);
     }
-
-  fclose(out);
-
-  return 0;
 }
 
 void
