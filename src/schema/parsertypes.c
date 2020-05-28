@@ -89,12 +89,14 @@ column_add_property (struct column_t *column, struct property_t property)
           if (column->pool.type != VALUEPOOL_NONE)
             {
               yywarning(WARNING_REDEFINITION, strproperty(property.type));
+              free(property.reference.string);
               valuepool_fini(&column->pool);
             }
 
           if (property.reference.type != REFERENCE_COLUMN)
             {
               yyerror(NULL, "pool reference to something not a column: '%s'", property.reference.string);
+              free(property.reference.string);
               return 1;
             }
 
@@ -105,6 +107,7 @@ column_add_property (struct column_t *column, struct property_t property)
           if (NULL == c)
             {
               yyerror(NULL, "unable to resolve pool reference: '%s'", property.reference.string);
+              free(property.reference.string);
               return 1;
             }
 
@@ -115,13 +118,19 @@ column_add_property (struct column_t *column, struct property_t property)
                 break;
               default:
                 yyerror(NULL, "invalid pool reference: '%s'", property.reference.string);
+                free(property.reference.string);
                 return 1;
             }
 
           int res;
-          guard (0 == (res = valuepool_init(&column->pool, VALUEPOOL_REFERENCE))) else { return res; }
+          guard (0 == (res = valuepool_init(&column->pool, VALUEPOOL_REFERENCE))) else
+            {
+              free(property.reference.string);
+              return res;
+            }
 
           column->pool.ref = &c->pool;
+          free(property.reference.string);
           break;
         }
       case PROPERTY_POOLARR:

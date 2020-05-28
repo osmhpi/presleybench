@@ -202,6 +202,7 @@ property            : NAME '=' STRING
                       if ($4.type != REFERENCE_TABLE)
                         {
                           yyerror(NULL, "foreign key reference to something not a table: '%s'", $4.string);
+                          free($4.string);
                           YYABORT;
                         }
 
@@ -209,6 +210,8 @@ property            : NAME '=' STRING
 
                       $$.foreignkey._lhs = $2;
                       $$.foreignkey._rhs = $6;
+
+                      free($4.string);
                     }
                     ;
 
@@ -221,24 +224,24 @@ string_array        : '[' string_list ']'
 string_list         : string_list ',' STRING
                     {
                       $$ = $1;
-                      guard (0 == list_add(&$$, $3)) else { yyerror(NULL, NULL); YYABORT; }
+                      guard (0 == list_add(&$$, $3)) else { yyerror(NULL, NULL); free($3); YYABORT; }
                     }
                     | STRING
                     {
                       list_init(&$$);
-                      guard (0 == list_add(&$$, $1)) else { yyerror(NULL, NULL); YYABORT; }
+                      guard (0 == list_add(&$$, $1)) else { yyerror(NULL, NULL); free($1); YYABORT; }
                     }
                     ;
 
 column_list         : IDENTIFIER
                     {
                       list_init(&$$);
-                      guard (0 == list_add(&$$, $1)) else { yyerror(NULL, NULL); YYABORT; }
+                      guard (0 == list_add(&$$, $1)) else { yyerror(NULL, NULL); free($1); YYABORT; }
                     }
                     | column_list ',' IDENTIFIER
                     {
                       $$ = $1;
-                      guard (0 == list_add(&$$, $3)) else { yyerror(NULL, NULL); YYABORT; }
+                      guard (0 == list_add(&$$, $3)) else { yyerror(NULL, NULL); free($3); YYABORT; }
                     }
                     ;
 
@@ -263,8 +266,10 @@ expression          : expression '+' expression
                       else
                         {
                           yyerror(NULL, "unrecognized identifier: '%s'", $1);
+                          free($1);
                           YYABORT;
                         }
+
                       free($1);
                     }
                     ;
@@ -281,8 +286,10 @@ qualified_name      : IDENTIFIER
                       guard (NULL != ($$.ref = schema_get_table_by_name(schema, $1))) else
                         {
                           yyerror(NULL, "unable to resolve table reference: '%s'", $1);
+                          free($1);
                           YYABORT;
                         }
+
                       $$.type = REFERENCE_TABLE;
                     }
                     | qualified_name '.' IDENTIFIER
@@ -291,7 +298,6 @@ qualified_name      : IDENTIFIER
                       $$.string = $1.string;
 
                       guard (0 <= astrcat(&$$.string, NULL, ".%s", $3)) else { yyerror(NULL, NULL); free($3); YYABORT; }
-                      free($3);
 
                       switch ($1.type)
                         {
@@ -299,14 +305,18 @@ qualified_name      : IDENTIFIER
                             guard (NULL != ($$.ref = table_get_column_by_name($1.ref, $3))) else
                               {
                                 yyerror(NULL, "unable to resolve column reference: '%s'", $$.string);
+                                free($3);
                                 YYABORT;
                               }
                             $$.type = REFERENCE_COLUMN;
                             break;
                           default:
                             yyerror(NULL, "invalid reference to something not a table or a column: '%s'", $$.string);
+                            free($3);
                             YYABORT;
                         }
+
+                      free($3);
                     }
                     ;
 
