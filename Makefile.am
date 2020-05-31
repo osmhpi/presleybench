@@ -7,11 +7,11 @@ AUTOMAKE_OPTIONS = subdir-objects
 AM_YFLAGS = -d -v
 AM_CPPFLAGS = -I$(top_srcdir)/src/
 
-bin_PROGRAMS = presleybench
+bin_PROGRAMS = presleybench simplebench
 
 presleybench_SOURCES = \
-  src/main.c src/main.h \
-  src/argparse.c src/argparse.h \
+  src/presley/main.c src/presley/main.h \
+  src/presley/argparse.c src/presley/argparse.h \
   src/util/list.c src/util/list.h \
   src/util/assert.c src/util/assert.h \
   src/util/string.c src/util/string.h \
@@ -26,9 +26,20 @@ presleybench_SOURCES = \
   src/schema/validate.c src/schema/validate.h \
   src/schema/dump.c src/schema/dump.h \
   src/schema/tpcc.c src/schema/tpcc.h \
-  src/data/generate.c src/data/generate.h
+  src/data/generate.c src/data/generate.h \
+  src/data/generators.c src/data/generators.h
 
 presleybench_LDADD = $(argp_LIBS)
+
+simplebench_SOURCES = \
+  src/simple/main.c src/simple/main.h \
+  src/simple/argparse.c src/simple/argparse.h \
+  src/simple/bplustree.c src/simple/bplustree.h \
+  src/simple/threads.c src/simple/threads.h \
+  src/simple/data.c src/simple/data.h \
+  src/util/assert.c src/util/assert.h
+
+simplebench_LDADD = $(argp_LIBS)
 
 BUILT_SOURCES = \
   src/schema/parser.h

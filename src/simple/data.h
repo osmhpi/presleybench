@@ -1,0 +1,14 @@
+#ifndef DATA_H
+#define DATA_H
+
+#include "util/assert.h"
+
+#include <stddef.h>
+
+extern size_t data_range;
+
+int data_setup (size_t, size_t) att_warn_unused_result;
+
+int data_linear_search (int) att_warn_unused_result;
+
+#endif

@@ -9,10 +9,6 @@
 #include <errno.h>
 #include <string.h>
 
-#if !HAVE_PROGRAM_INVOCATION_NAME
-const char *program_invocation_name = NULL;
-#endif
-
 int
 main (int argc, char *argv[])
 {

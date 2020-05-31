@@ -26,6 +26,7 @@ dump_table (struct table_t *table, FILE *out)
 {
   fprintf(out, "  name: '%s'\n", table->name);
   fprintf(out, "  rows: %zu\n", table->rows);
+  fprintf(out, "  parent: %p\n", table->parent);
 
   fprintf(out, "\n  ncolumns: %zu\n", table->columns.n);
 
@@ -105,6 +106,7 @@ void
 dump_column (struct column_t *column, FILE *out)
 {
   fprintf(out, "    name: '%s'\n", column->name);
+  fprintf(out, "    parent: %p (%s)\n", column->parent, column->parent->name);
   fprintf(out, "    datatype: %s(%zu)\n", strdatatype(column->type.name), column->type.length);
 
   fprintf(out, "    pool: %s\n", strpooltype(column->pool.type));

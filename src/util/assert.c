@@ -1,11 +1,13 @@
 
 #include "util/assert.h"
 
-#include "main.h"
-
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
+
+#if !HAVE_PROGRAM_INVOCATION_NAME
+const char *program_invocation_name = NULL;
+#endif
 
 int
 assert_error_at_line (const char *filename, unsigned int lineno, const char* format, ...)

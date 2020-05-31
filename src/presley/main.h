@@ -5,6 +5,4 @@
 #  include <config.h>
 #endif
 
-extern const char *program_invocation_name;
-
 #endif
