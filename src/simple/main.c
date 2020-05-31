@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
 
 #define SIZE 1000000
 #define SPARSITY 2.0

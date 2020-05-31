@@ -39,7 +39,9 @@ simplebench_SOURCES = \
   src/simple/data.c src/simple/data.h \
   src/util/assert.c src/util/assert.h
 
-simplebench_LDADD = $(argp_LIBS)
+simplebench_CFLAGS = $(pthread_CFLAGS)
+
+simplebench_LDADD = $(argp_LIBS) $(pthread_LIBS)
 
 BUILT_SOURCES = \
   src/schema/parser.h

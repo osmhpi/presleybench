@@ -82,7 +82,6 @@ parse_opt (int key, char *arg, struct argp_state *state)
     case ARGP_KEY_END:
       break;
     default:
-      debug_error("unrecognized argument key: '%i'", key);
       return ARGP_ERR_UNKNOWN;
     }
 
