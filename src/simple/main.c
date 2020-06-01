@@ -2,18 +2,15 @@
 #include "simple/main.h"
 
 #include "util/assert.h"
-#include "simple/bplustree.h"
+#include "util/list.h"
 #include "simple/threads.h"
 #include "simple/data.h"
 #include "simple/argparse.h"
+#include "simple/topology.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
-
-#define SIZE 1000000
-#define SPARSITY 2.0
-#define THREADS 4
 
 void
 handle_sigusr1 (int sigspec)
@@ -62,8 +59,17 @@ main (int argc, char *argv[])
   program_invocation_name = argv[0];
   #endif
 
-  // parse arguments
+  // discover NUMA topology
   int res;
+  guard (0 == (res = topology_setup())) else
+    {
+      runtime_error("topology_setup");
+      return res;
+    }
+
+  return 0;
+
+  // parse arguments
   guard (0 == (res = argparse(argc, argv))) else
     {
       runtime_error("failed to comprehend command line arguments");

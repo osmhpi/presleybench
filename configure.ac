@@ -14,6 +14,8 @@ AC_PROG_CC
 AM_PROG_LEX
 AC_PROG_YACC
 
+AC_CHECK_LIB([numa], [numa_available], [numa_LIBS=-lnuma; AC_SUBST(numa_LIBS)])
+
 AX_PTHREAD([], [AC_MSG_ERROR([missing pthread])])
 
 AX_CHECK_FUNC_DECL([asprintf], [stdio.h])

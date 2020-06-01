@@ -37,11 +37,12 @@ simplebench_SOURCES = \
   src/simple/bplustree.c src/simple/bplustree.h \
   src/simple/threads.c src/simple/threads.h \
   src/simple/data.c src/simple/data.h \
+  src/simple/topology.c src/simple/topology.h \
   src/util/assert.c src/util/assert.h
 
 simplebench_CFLAGS = $(pthread_CFLAGS)
 
-simplebench_LDADD = $(argp_LIBS) $(pthread_LIBS)
+simplebench_LDADD = $(argp_LIBS) $(pthread_LIBS) $(numa_LIBS)
 
 BUILT_SOURCES = \
   src/schema/parser.h
