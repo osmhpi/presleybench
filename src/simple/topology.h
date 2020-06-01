@@ -26,4 +26,6 @@ extern struct topology_t topology;
 
 int topology_setup(void) att_warn_unused_result;
 
+struct node_t *topology_node_get(int) att_warn_unused_result;
+
 #endif

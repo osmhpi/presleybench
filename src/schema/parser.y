@@ -17,8 +17,6 @@
 extern const char *yyfilename;
 extern int yylineno;
 
-extern const char *program_invocation_name;
-
 void
 yyerror (att_unused struct schema_t *schema, char const *format, ...)
 {

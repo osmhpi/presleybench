@@ -7,8 +7,8 @@
 
 struct topology_t topology = { 0 };
 
-static struct node_t* att_warn_unused_result
-node_get (int nodenum)
+struct node_t* att_warn_unused_result
+topology_node_get (int nodenum)
 {
   size_t i;
   for (i = 0; i < topology.nodes.n; ++i)
@@ -94,7 +94,7 @@ topology_setup (void)
       if (v & 1)
         {
           int nodenum = numa_node_of_cpu(i);
-          struct node_t *node = node_get(nodenum);
+          struct node_t *node = topology_node_get(nodenum);
           int res;
           guard (0 == (res = node_add_cpu(node, i))) else { return res; }
         }

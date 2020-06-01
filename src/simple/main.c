@@ -2,7 +2,6 @@
 #include "simple/main.h"
 
 #include "util/assert.h"
-#include "util/list.h"
 #include "simple/threads.h"
 #include "simple/data.h"
 #include "simple/argparse.h"
@@ -59,24 +58,31 @@ main (int argc, char *argv[])
   program_invocation_name = argv[0];
   #endif
 
-  // discover NUMA topology
-  int res;
-  guard (0 == (res = topology_setup())) else
-    {
-      runtime_error("topology_setup");
-      return res;
-    }
-
-  return 0;
-
   // parse arguments
+  int res;
   guard (0 == (res = argparse(argc, argv))) else
     {
       runtime_error("failed to comprehend command line arguments");
       return res;
     }
 
-  printf("beginning setup.\n");
+  // discover NUMA topology
+  guard (0 == (res = topology_setup())) else
+    {
+      runtime_error("topology_setup");
+      return res;
+    }
+
+  if (arguments.primary_node == -1)
+    {
+      arguments.primary_node = topology.nodes.nodes[0].num;
+    }
+
+  guard (NULL != topology_node_get(arguments.primary_node)) else
+    {
+      runtime_error("unknown primary node: '%s'", arguments._primary_node);
+      return 1;
+    }
 
   srand(time(NULL));
 
@@ -86,7 +92,7 @@ main (int argc, char *argv[])
       return res;
     }
 
-  guard (0 == (res = threads_setup(arguments.threads))) else
+  guard (0 == (res = threads_setup())) else
     {
       runtime_error("threads_setup");
       return res;

@@ -7,7 +7,7 @@
 
 #include <stdarg.h>
 
-extern const char *program_invocation_name;
+extern char *program_invocation_name;
 
 #define runtime_assert(COND, ...) \
   do { if (!(COND)) assert_error(__VA_ARGS__); } while (0)

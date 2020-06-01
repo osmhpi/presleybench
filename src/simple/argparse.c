@@ -2,7 +2,6 @@
 #include "argparse.h"
 
 #include "util/assert.h"
-#include "schema/tpcc.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,7 +10,6 @@
 
 #define DEFAULT_ROWS 100000000
 #define DEFAULT_SPARSITY 2.0
-#define DEFAULT_THREADS 4
 
 const char *argp_program_version = PACKAGE_STRING;
 const char *argp_program_bug_address = PACKAGE_BUGREPORT;
@@ -21,9 +19,12 @@ const char args_doc[] = "[--]";
 
 static struct argp_option options[] =
 {
+  {"primary", 'p', "<node>", 0, "the id of the numa node for the primary data placement", 0},
+  {"replicate", 'e', NULL, 0, "replicate the tree data across nodes (implies -b)", 0},
+  {"bplus", 'b', NULL, 0, "perform bplus tree search instead of linear scan", 0},
   {"rows", 'r', "<number>", 0, "the amount of rows to populate", 0},
   {"sparsity", 's', "<fraction>", 0, "the sparsity of populated values. must be >= 1", 0},
-  {"threads", 't', "<number>", 0, "the number of threads to spawn", 0},
+  {"pin-strategy", 'P', "<cpu|node>", 0, "what level of topology to pin threads to. default: cpu", 0},
   {"verbose", 'v', NULL, 0, "be more verbose", 0},
   {"quiet", 'q', NULL, 0, "be less verbose", 0},
   {NULL, 0, NULL, 0, NULL, 0}
@@ -36,6 +37,25 @@ parse_opt (int key, char *arg, struct argp_state *state)
 
   switch (key)
     {
+    case 'p':
+      {
+        int errsv = errno; errno = 0;
+        guard (0 == ((args->primary_node = strtol(arg, NULL, 0)), errno)) else
+          {
+            runtime_error("invalid primary node number: '%s'", arg);
+            return 1;
+          }
+        arguments._primary_node = arg;
+        errno = errsv;
+        break;
+      }
+    case 'e':
+      args->replicate = 1;
+      args->tree_search = 1;
+      break;
+    case 'b':
+      args->tree_search = 1;
+      break;
     case 'r':
       {
         int errsv = errno; errno = 0;
@@ -58,17 +78,22 @@ parse_opt (int key, char *arg, struct argp_state *state)
         errno = errsv;
         break;
       }
-    case 't':
-      {
-        int errsv = errno; errno = 0;
-        guard (0 == ((args->threads = strtol(arg, NULL, 0)), errno)) else
-          {
-            runtime_error("invalid thread count: '%s'", arg);
-            return 1;
-          }
-        errno = errsv;
-        break;
-      }
+    case 'P':
+      if (!strcmp("cpu", arg))
+        {
+          args->pin_strategy = PIN_STRATEGY_CPU;
+        }
+      else if (!strcmp("node", arg))
+        {
+          args->pin_strategy = PIN_STRATEGY_NODE;
+        }
+      else
+        {
+          runtime_error("invalid pin strategy: '%s'", arg);
+          return 1;
+        }
+      args->_pin_strategy = arg;
+      break;
     case 'v':
       args->verbosity++;
       break;
@@ -90,7 +115,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
 
 static struct argp argp = {options, &parse_opt, args_doc, doc, 0, 0, 0};
 
-struct arguments_t arguments = { DEFAULT_ROWS, DEFAULT_SPARSITY, DEFAULT_THREADS, 0 };
+struct arguments_t arguments = { DEFAULT_ROWS, DEFAULT_SPARSITY, -1, NULL, 0, 0, PIN_STRATEGY_CPU, NULL, 0 };
 
 int
 argparse (int argc, char *argv[])

@@ -7,11 +7,24 @@
 
 #include <argp.h>
 
+enum pin_strategy_e
+{
+  PIN_STRATEGY_CPU,
+  PIN_STRATEGY_NODE
+};
+
 struct arguments_t
 {
   size_t rows;
   double sparsity;
-  size_t threads;
+
+  int primary_node;
+  const char *_primary_node;
+  int replicate;
+  int tree_search;
+
+  enum pin_strategy_e pin_strategy;
+  const char *_pin_strategy;
 
   int verbosity;
 };
