@@ -1,5 +1,6 @@
 
 #include "simple/topology.h"
+#include "simple/argparse.h"
 
 #include <numa.h>
 
@@ -35,12 +36,6 @@ node_add_cpu (struct node_t* node, int cpunum)
 int
 topology_setup (void)
 {
-  guard (0 == numa_available()) else
-    {
-      runtime_error("NUMA capabilities not available.");
-      return 1;
-    }
-
   //printf("numa_max_possible_node: %i\n", numa_max_possible_node());
   //printf("numa_num_possible_nodes: %i\n", numa_num_possible_nodes());
   //printf("numa_max_node: %i\n", numa_max_node());
@@ -117,6 +112,22 @@ topology_setup (void)
     }
 
   //return 0;
+
+  return 0;
+}
+
+int
+numa_membind_to_node (int node)
+{
+  struct bitmask *nodemask;
+  guard (NULL != (nodemask = numa_allocate_nodemask())) else
+    {
+      runtime_error("numa_allocate_nodemask");
+      return 2;
+    }
+  numa_bitmask_setbit(nodemask, node);
+  numa_set_membind(nodemask);
+  numa_free_nodemask(nodemask);
 
   return 0;
 }

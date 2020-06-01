@@ -12,22 +12,33 @@
 
 struct thread_list_t threads = { 0 };
 
-static void
+static int
 pin_thread (struct thread_args_t *arg)
 {
+  // limit execution to target cpu or node
   if (arguments.pin_strategy == PIN_STRATEGY_NODE)
     {
-      printf(" thread %i: attempting to pin to node #%i\n", arg->id, arg->node);
       debug_guard (0 == numa_run_on_node(arg->node));
     }
   else
     {
-      printf(" thread %i: attempting to pin to cpu #%i\n", arg->id, arg->cpu);
       cpu_set_t set;
       CPU_ZERO(&set);
       CPU_SET(arg->cpu, &set);
       debug_guard (0 == sched_setaffinity(0, sizeof(cpu_set_t), &set));
     }
+
+  // limit allocations to target node
+  struct bitmask *nodemask;
+  guard (NULL != (nodemask = numa_allocate_nodemask())) else
+    {
+      runtime_error("numa_allocate_nodemask");
+      return 2;
+    }
+  numa_bitmask_setbit(nodemask, arg->node);
+  numa_set_membind(nodemask);
+
+  return 0;
 }
 
 static void*
@@ -35,13 +46,19 @@ thread_func_linear_search (void *arg)
 {
   struct thread_args_t *thread_arg = arg;
 
-  pin_thread(arg);
+  int res;
+  guard (0 == (res = pin_thread(arg))) else
+    {
+      runtime_error("failed to pin thread #%i", thread_arg->id);
+      return NULL;
+    }
 
   while (thread_arg->cont)
     {
       int needle = rand_r(&thread_arg->seed) % thread_arg->data_range;
       int match = data_linear_search(thread_arg->data_array, thread_arg->data_rows, needle);
       (void)match;
+      thread_arg->ctr++;
     }
 
   return NULL;
@@ -52,13 +69,19 @@ thread_func_tree_search (void *arg)
 {
   struct thread_args_t *thread_arg = arg;
 
-  pin_thread(arg);
+  int res;
+  guard (0 == (res = pin_thread(arg))) else
+    {
+      runtime_error("failed to pin thread #%i", thread_arg->id);
+      return NULL;
+    }
 
   while (thread_arg->cont)
     {
       int needle = rand_r(&thread_arg->seed) % thread_arg->data_range;
       int match = data_tree_search(thread_arg->tree, needle);
       (void)match;
+      thread_arg->ctr++;
     }
 
   return NULL;
@@ -71,16 +94,6 @@ thread_setup_shared (struct thread_args_t *args)
   args->seed = threads.seed;
   args->data_range = data_range;
   args->cont = 1;
-
-  if (arguments.tree_search)
-    {
-      args->tree = data_tree;
-    }
-  else
-    {
-      args->data_array = data_array;
-      args->data_rows = data_rows;
-    }
 }
 
 int
@@ -134,6 +147,23 @@ threads_setup (void)
               threads.args[n].node = topology.nodes.nodes[i].num;
               threads.args[n].cpu = topology.nodes.nodes[i].cpus.cpus[j];
 
+              if (arguments.tree_search)
+                {
+                  if (arguments.replicate)
+                    {
+                      threads.args[n].tree = topology.nodes.nodes[i].replica;
+                    }
+                  else
+                    {
+                      threads.args[i].tree = data_tree;
+                    }
+                }
+              else
+                {
+                  threads.args[i].data_array = data_array;
+                  threads.args[i].data_rows = data_rows;
+                }
+
               thread_setup_shared(threads.args + n++);
             }
         }
@@ -145,6 +175,23 @@ threads_setup (void)
               threads.args[n].id = n;
               threads.args[n].node = topology.nodes.nodes[i].num;
               threads.args[n].cpu = -1;
+
+              if (arguments.tree_search)
+                {
+                  if (arguments.replicate)
+                    {
+                      threads.args[n].tree = topology.nodes.nodes[i].replica;
+                    }
+                  else
+                    {
+                      threads.args[i].tree = data_tree;
+                    }
+                }
+              else
+                {
+                  threads.args[i].data_array = data_array;
+                  threads.args[i].data_rows = data_rows;
+                }
 
               thread_setup_shared(threads.args + n++);
             }

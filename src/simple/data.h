@@ -10,6 +10,7 @@ extern size_t data_rows;
 extern int *data_array;
 extern size_t data_range;
 extern struct bplus_tree *data_tree;
+extern struct bplus_tree **replica_trees;
 
 int data_setup (size_t, size_t) att_warn_unused_result;
 

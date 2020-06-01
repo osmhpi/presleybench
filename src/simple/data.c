@@ -2,6 +2,7 @@
 #include "simple/data.h"
 #include "simple/bplustree.h"
 #include "simple/argparse.h"
+#include "simple/topology.h"
 
 #include <errno.h>
 #include <stdio.h>
@@ -85,6 +86,46 @@ data_setup (size_t rows, size_t range)
       bplus_tree_put(data_tree, data_array[i], i);
     }
   printf("\r    *  100 %% \n");
+
+  if (!arguments.replicate)
+    return 0;
+
+  printf("preparing B+ tree replicates ...\n");
+
+  for (i = 0; i < topology.nodes.n; ++i)
+    {
+      topology.nodes.nodes[i].replica = NULL;
+      printf("  populating replica for node #%i ...\n", topology.nodes.nodes[i].num);
+
+      int res;
+      guard (0 == (res = numa_membind_to_node(topology.nodes.nodes[i].num))) else
+        {
+          runtime_error("failed to bind memory allocations to node #%i", arguments.primary_node);
+          return res;
+        }
+
+      guard (NULL != (topology.nodes.nodes[i].replica = bplus_tree_init(TREE_ORDER, TREE_ENTRIES))) else { return 2; }
+
+      size_t j;
+      for (j = 0; j < rows; ++j)
+        {
+          if (!(j % increment))
+            {
+              int progress = j / increment;
+              printf("\r    %c  %i.%i %%", "-\\|/"[progress % 4], progress / 10, progress % 10);
+              fflush(stdout);
+            }
+          bplus_tree_put(topology.nodes.nodes[i].replica, data_array[j], j);
+        }
+      printf("\r    *  100 %% \n");
+    }
+
+  int res;
+  guard (0 == (res = numa_membind_to_node(arguments.primary_node))) else
+    {
+      runtime_error("failed to bind memory allocations to node #%i", arguments.primary_node);
+      return res;
+    }
 
   return 0;
 }
