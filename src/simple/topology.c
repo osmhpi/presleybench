@@ -54,20 +54,18 @@ topology_setup (void)
   struct bitmask *mask = numa_all_nodes_ptr;
   //fprintf(stderr, "mask size: %lu\n", mask->size);
 
-  unsigned long i, v, x, j;
+  unsigned long i, n;
   fprintf(stderr, "node mask: ");
-  for (i = 0, v = 0, x = 0, j = 0; i < mask->size; ++i)
+  for (i = 0, n = 0; i < mask->size; ++i)
     {
-      if (!(i % (sizeof(unsigned long) * 8)))
-        {
-          v = mask->maskp[x++];
-          if (i > 0)
-            fprintf(stderr, "\n           ");
-        }
-      if (v & 1)
-        topology.nodes.nodes[j++].num = i;
-      fprintf(stderr, "%lu", v & 1);
-      v >>= 1;
+      if (i > 0 && i % 64 == 0)
+        fprintf(stderr, "\n           ");
+
+      int set = numa_bitmask_isbitset(mask, i);
+      if (set)
+        topology.nodes.nodes[n++].num = i;
+
+      fprintf(stderr, "%i", set);
     }
   fprintf(stderr, "\n");
 
@@ -78,23 +76,28 @@ topology_setup (void)
   //printf("mask size: %lu\n", mask->size);
 
   fprintf(stderr, "cpu mask : ");
-  for (i = 0, v = 0, x = 0, j = 0; i < mask->size; ++i)
+  for (i = 0, n = 0; i < mask->size; ++i)
     {
-      if (!(i % (sizeof(unsigned long) * 8)))
+      if (i > 0 && i % 64 == 0)
+        fprintf(stderr, "\n           ");
+
+      int set = numa_bitmask_isbitset(mask, i);
+      if (set)
         {
-          v = mask->maskp[x++];
-          if (i > 0)
-            fprintf(stderr, "\n           ");
-        }
-      if (v & 1)
-        {
-          int nodenum = numa_node_of_cpu(i);
-          struct node_t *node = topology_node_get(nodenum);
+          int nodenum;
+          // this sometimes fails on very large systems (~400 cores)
+          guard (0 <= (nodenum = numa_node_of_cpu(i))) else
+            {
+              fprintf(stderr, "X");
+              continue;
+            }
+          struct node_t *node;
+          guard (NULL != (node = topology_node_get(nodenum))) else { return 1; }
           int res;
           guard (0 == (res = node_add_cpu(node, i))) else { return res; }
         }
-      fprintf(stderr, "%lu", v & 1);
-      v >>= 1;
+
+      fprintf(stderr, "%i", set);
     }
   fprintf(stderr, "\n");
 
@@ -104,9 +107,9 @@ topology_setup (void)
     {
       fprintf(stderr, "  node #%i\n", topology.nodes.nodes[i].num);
       fprintf(stderr, "  cpus:");
-      for (j = 0; j < topology.nodes.nodes[i].cpus.n; ++j)
+      for (n = 0; n < topology.nodes.nodes[i].cpus.n; ++n)
         {
-          fprintf(stderr, " %i", topology.nodes.nodes[i].cpus.cpus[j]);
+          fprintf(stderr, " %i", topology.nodes.nodes[i].cpus.cpus[n]);
         }
       fprintf(stderr, "\n");
     }

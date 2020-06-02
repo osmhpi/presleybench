@@ -44,13 +44,13 @@ pin_thread (struct thread_args_t *arg)
 static void*
 thread_func_linear_search (void *arg)
 {
-  void *frame = __builtin_frame_address(0);
-  int node;
-  debug_guard (0 == numa_move_pages(0, 1, &frame, NULL, &node, 0));
+  //void *frame = __builtin_frame_address(0);
+  //int node;
+  //debug_guard (0 == numa_move_pages(0, 1, &frame, NULL, &node, 0));
 
   struct thread_args_t *thread_arg = arg;
 
-  fprintf(stderr, "thread #%i: pre-pin node of stack data: #%i\n", thread_arg->id, node);
+  //fprintf(stderr, "thread #%i: pre-pin node of stack data: #%i\n", thread_arg->id, node);
 
   int res;
   guard (0 == (res = pin_thread(arg))) else
@@ -59,10 +59,10 @@ thread_func_linear_search (void *arg)
       return NULL;
     }
 
-  frame = __builtin_frame_address(0);
-  debug_guard (0 == numa_move_pages(0, 1, &frame, NULL, &node, 0));
+  //frame = __builtin_frame_address(0);
+  //debug_guard (0 == numa_move_pages(0, 1, &frame, NULL, &node, 0));
 
-  fprintf(stderr, "thread #%i: post-pin node of stack data: #%i\n", thread_arg->id, node);
+  //fprintf(stderr, "thread #%i: post-pin node of stack data: #%i\n", thread_arg->id, node);
 
   while (thread_arg->cont)
     {

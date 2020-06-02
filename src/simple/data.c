@@ -11,6 +11,19 @@
 #define TREE_ORDER 64
 #define TREE_ENTRIES 64
 
+static int aggregation_enabled = 0;
+static size_t bytes = 0;
+
+extern void* __libc_calloc(size_t, size_t);
+
+void*
+calloc (size_t nmemb, size_t size)
+{
+  if (aggregation_enabled)
+    bytes += nmemb * size;
+
+  return __libc_calloc(nmemb, size);
+}
 
 size_t data_rows = 0;
 int *data_array = NULL;
@@ -60,6 +73,7 @@ data_setup (size_t rows, size_t range)
       data_array[i] = tmp;
     }
   fprintf(stderr, "\r    *  100 %% \n");
+  fprintf(stderr, "  data size: %zu Bytes\n", rows * sizeof(*data_array));
 
   // truncate to SIZE
   guard (NULL != (data_array = realloc(data_array, sizeof(*data_array) * rows))) else { return 2; }
@@ -71,7 +85,9 @@ data_setup (size_t rows, size_t range)
   fprintf(stderr, "  populating values ...\n");
 
   // populate tree
+  aggregation_enabled = 1;
   guard (NULL != (data_tree = bplus_tree_init(TREE_ORDER, TREE_ENTRIES))) else { return 2; }
+  aggregation_enabled = 0;
 
   increment = rows / 1000;
 
@@ -83,9 +99,13 @@ data_setup (size_t rows, size_t range)
           fprintf(stderr, "\r    %c  %i.%i %%", "-\\|/"[progress % 4], progress / 10, progress % 10);
           fflush(stdout);
         }
+      aggregation_enabled = 1;
       bplus_tree_put(data_tree, data_array[i], i);
+      aggregation_enabled = 0;
     }
+
   fprintf(stderr, "\r    *  100 %% \n");
+  fprintf(stderr, "  tree size: %zu Bytes\n", bytes);
 
   if (!arguments.replicate)
     return 0;
