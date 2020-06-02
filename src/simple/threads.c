@@ -44,7 +44,13 @@ pin_thread (struct thread_args_t *arg)
 static void*
 thread_func_linear_search (void *arg)
 {
+  void *frame = __builtin_frame_address(0);
+  int node;
+  debug_guard (0 == numa_move_pages(0, 1, &frame, NULL, &node, 0));
+
   struct thread_args_t *thread_arg = arg;
+
+  printf("thread #%i: pre-pin node of stack data: #%i\n", thread_arg->id, node);
 
   int res;
   guard (0 == (res = pin_thread(arg))) else
@@ -52,6 +58,11 @@ thread_func_linear_search (void *arg)
       runtime_error("failed to pin thread #%i", thread_arg->id);
       return NULL;
     }
+
+  frame = __builtin_frame_address(0);
+  debug_guard (0 == numa_move_pages(0, 1, &frame, NULL, &node, 0));
+
+  printf("thread #%i: post-pin node of stack data: #%i\n", thread_arg->id, node);
 
   while (thread_arg->cont)
     {
@@ -155,13 +166,13 @@ threads_setup (void)
                     }
                   else
                     {
-                      threads.args[i].tree = data_tree;
+                      threads.args[n].tree = data_tree;
                     }
                 }
               else
                 {
-                  threads.args[i].data_array = data_array;
-                  threads.args[i].data_rows = data_rows;
+                  threads.args[n].data_array = data_array;
+                  threads.args[n].data_rows = data_rows;
                 }
 
               thread_setup_shared(threads.args + n++);
@@ -184,13 +195,13 @@ threads_setup (void)
                     }
                   else
                     {
-                      threads.args[i].tree = data_tree;
+                      threads.args[n].tree = data_tree;
                     }
                 }
               else
                 {
-                  threads.args[i].data_array = data_array;
-                  threads.args[i].data_rows = data_rows;
+                  threads.args[n].data_array = data_array;
+                  threads.args[n].data_rows = data_rows;
                 }
 
               thread_setup_shared(threads.args + n++);
