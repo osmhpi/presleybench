@@ -36,12 +36,12 @@ node_add_cpu (struct node_t* node, int cpunum)
 int
 topology_setup (void)
 {
-  //printf("numa_max_possible_node: %i\n", numa_max_possible_node());
-  //printf("numa_num_possible_nodes: %i\n", numa_num_possible_nodes());
-  //printf("numa_max_node: %i\n", numa_max_node());
+  //fprintf(stderr, "numa_max_possible_node: %i\n", numa_max_possible_node());
+  //fprintf(stderr, "numa_num_possible_nodes: %i\n", numa_num_possible_nodes());
+  //fprintf(stderr, "numa_max_node: %i\n", numa_max_node());
 
   topology.nodes.n = numa_num_configured_nodes();
-  printf("numa_num_configured_nodes: %zu\n", topology.nodes.n);
+  fprintf(stderr, "numa_num_configured_nodes: %zu\n", topology.nodes.n);
 
   guard (NULL != (topology.nodes.nodes = malloc(sizeof(*topology.nodes.nodes) * topology.nodes.n))) else
     {
@@ -52,39 +52,39 @@ topology_setup (void)
   memset(topology.nodes.nodes, 0, sizeof(*topology.nodes.nodes) * topology.nodes.n);
 
   struct bitmask *mask = numa_all_nodes_ptr;
-  //printf("mask size: %lu\n", mask->size);
+  //fprintf(stderr, "mask size: %lu\n", mask->size);
 
   unsigned long i, v, x, j;
-  printf("node mask: ");
+  fprintf(stderr, "node mask: ");
   for (i = 0, v = 0, x = 0, j = 0; i < mask->size; ++i)
     {
       if (!(i % (sizeof(unsigned long) * 8)))
         {
           v = mask->maskp[x++];
           if (i > 0)
-            printf("\n           ");
+            fprintf(stderr, "\n           ");
         }
       if (v & 1)
         topology.nodes.nodes[j++].num = i;
-      printf("%lu", v & 1);
+      fprintf(stderr, "%lu", v & 1);
       v >>= 1;
     }
-  printf("\n");
+  fprintf(stderr, "\n");
 
   int num_configured_cpus = numa_num_configured_cpus();
-  printf("numa_num_configured_cpus: %i\n", num_configured_cpus);
+  fprintf(stderr, "numa_num_configured_cpus: %i\n", num_configured_cpus);
 
   mask = numa_all_cpus_ptr;
   //printf("mask size: %lu\n", mask->size);
 
-  printf("cpu mask : ");
+  fprintf(stderr, "cpu mask : ");
   for (i = 0, v = 0, x = 0, j = 0; i < mask->size; ++i)
     {
       if (!(i % (sizeof(unsigned long) * 8)))
         {
           v = mask->maskp[x++];
           if (i > 0)
-            printf("\n           ");
+            fprintf(stderr, "\n           ");
         }
       if (v & 1)
         {
@@ -93,22 +93,22 @@ topology_setup (void)
           int res;
           guard (0 == (res = node_add_cpu(node, i))) else { return res; }
         }
-      printf("%lu", v & 1);
+      fprintf(stderr, "%lu", v & 1);
       v >>= 1;
     }
-  printf("\n");
+  fprintf(stderr, "\n");
 
-  printf("discovered topology information:\n");
+  fprintf(stderr, "discovered topology information:\n");
 
   for (i = 0; i < topology.nodes.n; ++i)
     {
-      printf("  node #%i\n", topology.nodes.nodes[i].num);
-      printf("  cpus:");
+      fprintf(stderr, "  node #%i\n", topology.nodes.nodes[i].num);
+      fprintf(stderr, "  cpus:");
       for (j = 0; j < topology.nodes.nodes[i].cpus.n; ++j)
         {
-          printf(" %i", topology.nodes.nodes[i].cpus.cpus[j]);
+          fprintf(stderr, " %i", topology.nodes.nodes[i].cpus.cpus[j]);
         }
-      printf("\n");
+      fprintf(stderr, "\n");
     }
 
   //return 0;

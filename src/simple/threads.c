@@ -50,7 +50,7 @@ thread_func_linear_search (void *arg)
 
   struct thread_args_t *thread_arg = arg;
 
-  printf("thread #%i: pre-pin node of stack data: #%i\n", thread_arg->id, node);
+  fprintf(stderr, "thread #%i: pre-pin node of stack data: #%i\n", thread_arg->id, node);
 
   int res;
   guard (0 == (res = pin_thread(arg))) else
@@ -62,7 +62,7 @@ thread_func_linear_search (void *arg)
   frame = __builtin_frame_address(0);
   debug_guard (0 == numa_move_pages(0, 1, &frame, NULL, &node, 0));
 
-  printf("thread #%i: post-pin node of stack data: #%i\n", thread_arg->id, node);
+  fprintf(stderr, "thread #%i: post-pin node of stack data: #%i\n", thread_arg->id, node);
 
   while (thread_arg->cont)
     {
@@ -101,6 +101,7 @@ thread_func_tree_search (void *arg)
 static void
 thread_setup_shared (struct thread_args_t *args)
 {
+  args->round = 0;
   args->ctr = 0;
   args->seed = threads.seed;
   args->data_range = data_range;
@@ -110,7 +111,7 @@ thread_setup_shared (struct thread_args_t *args)
 int
 threads_setup (void)
 {
-  printf("starting threads ...\n");
+  fprintf(stderr, "starting threads ...\n");
 
   size_t n = 0;
   size_t i;
@@ -153,7 +154,7 @@ threads_setup (void)
         {
           for (j = 0; j < topology.nodes.nodes[i].cpus.n; ++j)
             {
-              printf("  provisioning thread #%zu running %s on CPU #%i\n", n, _thread_func, topology.nodes.nodes[i].cpus.cpus[j]);
+              fprintf(stderr, "  provisioning thread #%zu running %s on CPU #%i\n", n, _thread_func, topology.nodes.nodes[i].cpus.cpus[j]);
               threads.args[n].id = n;
               threads.args[n].node = topology.nodes.nodes[i].num;
               threads.args[n].cpu = topology.nodes.nodes[i].cpus.cpus[j];
@@ -182,7 +183,7 @@ threads_setup (void)
         {
           for (j = 0; j < topology.nodes.nodes[i].cpus.n + 1; ++j)
             {
-              printf("  provisioning thread #%zu running %s on NODE #%i\n", n, _thread_func, topology.nodes.nodes[i].num);
+              fprintf(stderr, "  provisioning thread #%zu running %s on NODE #%i\n", n, _thread_func, topology.nodes.nodes[i].num);
               threads.args[n].id = n;
               threads.args[n].node = topology.nodes.nodes[i].num;
               threads.args[n].cpu = -1;

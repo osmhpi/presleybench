@@ -26,6 +26,7 @@ handle_sigusr1 (int sigspec)
   size_t i;
   for (i = 0; i < threads.n; ++i)
     {
+      threads.args[i].round++;
       threads.args[i].ctr = 0;
     }
 }
@@ -35,10 +36,17 @@ handle_sigusr2 (int sigspec)
 {
   (void)sigspec;
 
+  printf("threadid,nodeid,cpuid,round,counter\n");
+
   size_t i;
   for (i = 0; i < threads.n; ++i)
     {
-      printf(" + %zu: %llu\n", i, threads.args[i].ctr);
+      printf(" %i,%i,%i,%i,%llu\n",
+             threads.args[i].id,
+             threads.args[i].node,
+             threads.args[i].cpu,
+             threads.args[i].round,
+             threads.args[i].ctr);
     }
 }
 
@@ -83,7 +91,7 @@ main (int argc, char *argv[])
 
   // limit allocations to primary node
   numa_set_strict(1);
-  printf("attempting to bind master task allocations to node #%i\n", arguments.primary_node);
+  fprintf(stderr, "attempting to bind master task allocations to node #%i\n", arguments.primary_node);
   guard (0 == (res = numa_membind_to_node(arguments.primary_node))) else
     {
       runtime_error("failed to bind memory allocations to node #%i", arguments.primary_node);
@@ -126,13 +134,14 @@ main (int argc, char *argv[])
   signal(SIGUSR2, &handle_sigusr2);
   signal(SIGINT, &handle_sigint);
 
-  printf("finished setup.\n"
-         "\n"
-         "starting performance run.\n"
-         "send:\n"
-         "  SIGUSR1 - to reset counters\n"
-         "  SIGUSR2 - to print counters\n"
-         "  SIGINT  - to quit\n");
+  fprintf(stderr,
+          "finished setup.\n"
+          "\n"
+          "starting performance run.\n"
+          "send:\n"
+          "  SIGUSR1 - to reset counters\n"
+          "  SIGUSR2 - to print counters\n"
+          "  SIGINT  - to quit\n");
 
   guard (0 == (res = threads_join())) else
     {
@@ -140,7 +149,7 @@ main (int argc, char *argv[])
       return res;
     }
 
-  printf("goodbye.\n");
+  fprintf(stderr, "goodbye.\n");
 
   return 0;
 }

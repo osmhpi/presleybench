@@ -9,6 +9,7 @@
 struct thread_args_t
 {
   int id;
+  int round;
 
   unsigned long long ctr;
   unsigned int seed;

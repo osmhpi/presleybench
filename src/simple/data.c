@@ -25,8 +25,8 @@ data_setup (size_t rows, size_t range)
 
   guard (data_rows <= data_range) else { errno = EINVAL; return 1; }
 
-  printf("preparing data array ...\n");
-  printf("  initializing values ...\n");
+  fprintf(stderr, "preparing data array ...\n");
+  fprintf(stderr, "  initializing values ...\n");
 
   guard (NULL != (data_array = malloc(sizeof(*data_array) * range))) else { return 2; }
 
@@ -37,21 +37,21 @@ data_setup (size_t rows, size_t range)
       if (!(i % increment))
         {
           int progress = i / increment;
-          printf("\r    %c  %i.%i %%", "-\\|/"[progress % 4], progress / 10, progress % 10);
+          fprintf(stderr, "\r    %c  %i.%i %%", "-\\|/"[progress % 4], progress / 10, progress % 10);
           fflush(stdout);
         }
       data_array[i] = i;
     }
-  printf("\r    *  100 %% \n");
+  fprintf(stderr, "\r    *  100 %% \n");
 
-  printf("  performing fisher-yates shuffle ...\n");
+  fprintf(stderr, "  performing fisher-yates shuffle ...\n");
 
   for (i = range - 1; i > 0; --i)
     {
       if (!((range - i - 1) % increment))
         {
           int progress = (range - i - 1) / increment;
-          printf("\r    %c  %i.%i %%", "-\\|/"[progress % 4], progress / 10, progress % 10);
+          fprintf(stderr, "\r    %c  %i.%i %%", "-\\|/"[progress % 4], progress / 10, progress % 10);
           fflush(stdout);
         }
       int j = rand() % i;
@@ -59,7 +59,7 @@ data_setup (size_t rows, size_t range)
       data_array[j] = data_array[i];
       data_array[i] = tmp;
     }
-  printf("\r    *  100 %% \n");
+  fprintf(stderr, "\r    *  100 %% \n");
 
   // truncate to SIZE
   guard (NULL != (data_array = realloc(data_array, sizeof(*data_array) * rows))) else { return 2; }
@@ -67,8 +67,8 @@ data_setup (size_t rows, size_t range)
   if (!arguments.tree_search)
     return 0;
 
-  printf("preparing B+ tree ...\n");
-  printf("  populating values ...\n");
+  fprintf(stderr, "preparing B+ tree ...\n");
+  fprintf(stderr, "  populating values ...\n");
 
   // populate tree
   guard (NULL != (data_tree = bplus_tree_init(TREE_ORDER, TREE_ENTRIES))) else { return 2; }
@@ -80,22 +80,22 @@ data_setup (size_t rows, size_t range)
       if (!(i % increment))
         {
           int progress = i / increment;
-          printf("\r    %c  %i.%i %%", "-\\|/"[progress % 4], progress / 10, progress % 10);
+          fprintf(stderr, "\r    %c  %i.%i %%", "-\\|/"[progress % 4], progress / 10, progress % 10);
           fflush(stdout);
         }
       bplus_tree_put(data_tree, data_array[i], i);
     }
-  printf("\r    *  100 %% \n");
+  fprintf(stderr, "\r    *  100 %% \n");
 
   if (!arguments.replicate)
     return 0;
 
-  printf("preparing B+ tree replicates ...\n");
+  fprintf(stderr, "preparing B+ tree replicates ...\n");
 
   for (i = 0; i < topology.nodes.n; ++i)
     {
       topology.nodes.nodes[i].replica = NULL;
-      printf("  populating replica for node #%i ...\n", topology.nodes.nodes[i].num);
+      fprintf(stderr, "  populating replica for node #%i ...\n", topology.nodes.nodes[i].num);
 
       int res;
       guard (0 == (res = numa_membind_to_node(topology.nodes.nodes[i].num))) else
@@ -112,12 +112,12 @@ data_setup (size_t rows, size_t range)
           if (!(j % increment))
             {
               int progress = j / increment;
-              printf("\r    %c  %i.%i %%", "-\\|/"[progress % 4], progress / 10, progress % 10);
+              fprintf(stderr, "\r    %c  %i.%i %%", "-\\|/"[progress % 4], progress / 10, progress % 10);
               fflush(stdout);
             }
           bplus_tree_put(topology.nodes.nodes[i].replica, data_array[j], j);
         }
-      printf("\r    *  100 %% \n");
+      fprintf(stderr, "\r    *  100 %% \n");
     }
 
   int res;
