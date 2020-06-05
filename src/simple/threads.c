@@ -7,8 +7,6 @@
 
 #include <errno.h>
 #include <stdlib.h>
-#include <sched.h>
-#include <numa.h>
 
 struct thread_list_t threads = { 0 };
 
@@ -16,27 +14,17 @@ static int
 pin_thread (struct thread_args_t *arg)
 {
   // limit execution to target cpu or node
+  int res;
   if (arguments.pin_strategy == PIN_STRATEGY_NODE)
     {
-      debug_guard (0 == numa_run_on_node(arg->node));
+      guard (0 == (res = topology_pin_to_node(arg->node))) else { return res; }
     }
   else
     {
-      cpu_set_t set;
-      CPU_ZERO(&set);
-      CPU_SET(arg->cpu, &set);
-      debug_guard (0 == sched_setaffinity(0, sizeof(cpu_set_t), &set));
+      guard (0 == (res = topology_pin_to_cpu(arg->node))) else { return res; }
     }
 
-  // limit allocations to target node
-  struct bitmask *nodemask;
-  guard (NULL != (nodemask = numa_allocate_nodemask())) else
-    {
-      runtime_error("numa_allocate_nodemask");
-      return 2;
-    }
-  numa_bitmask_setbit(nodemask, arg->node);
-  numa_set_membind(nodemask);
+  guard (0 == (res = topology_membind_to_node(arg->node))) else { return res; }
 
   return 0;
 }
@@ -68,7 +56,16 @@ thread_func_linear_search (void *arg)
     {
       int needle = rand_r(&thread_arg->seed) % thread_arg->data_range;
       int match = data_linear_search(thread_arg->data_array, thread_arg->data_rows, needle);
-      (void)match;
+
+      if (arguments.verify)
+        {
+          guard (match == -1 || thread_arg->data_array[match] == needle) else
+            {
+              runtime_error("thread #%i:[%llu] search produced incorrect result. %i[%i] vs %i, Aborting.", thread_arg->id, thread_arg->ctr, thread_arg->data_array[match], match, needle);
+              return NULL;
+            }
+        }
+
       thread_arg->ctr++;
     }
 
@@ -91,7 +88,17 @@ thread_func_tree_search (void *arg)
     {
       int needle = rand_r(&thread_arg->seed) % thread_arg->data_range;
       int match = data_tree_search(thread_arg->tree, needle);
-      (void)match;
+
+      if (arguments.verify)
+        {
+          guard (match == -1 || thread_arg->data_array[match] == needle) else
+            {
+              int real_match = data_linear_search(thread_arg->data_array, thread_arg->data_rows, needle);
+              runtime_error("thread #%i:[%llu] search produced incorrect result. %i[%i] vs %i[%i], Aborting.", thread_arg->id, thread_arg->ctr, thread_arg->data_array[match], match, needle, real_match);
+              return NULL;
+            }
+        }
+
       thread_arg->ctr++;
     }
 
@@ -159,6 +166,8 @@ threads_setup (void)
               threads.args[n].node = topology.nodes.nodes[i].num;
               threads.args[n].cpu = topology.nodes.nodes[i].cpus.cpus[j];
 
+              threads.args[n].data_array = data_array;
+              threads.args[n].data_rows = data_rows;
               if (arguments.tree_search)
                 {
                   if (arguments.replicate)
@@ -169,11 +178,6 @@ threads_setup (void)
                     {
                       threads.args[n].tree = data_tree;
                     }
-                }
-              else
-                {
-                  threads.args[n].data_array = data_array;
-                  threads.args[n].data_rows = data_rows;
                 }
 
               thread_setup_shared(threads.args + n++);
@@ -188,6 +192,8 @@ threads_setup (void)
               threads.args[n].node = topology.nodes.nodes[i].num;
               threads.args[n].cpu = -1;
 
+              threads.args[n].data_array = data_array;
+              threads.args[n].data_rows = data_rows;
               if (arguments.tree_search)
                 {
                   if (arguments.replicate)
@@ -198,11 +204,6 @@ threads_setup (void)
                     {
                       threads.args[n].tree = data_tree;
                     }
-                }
-              else
-                {
-                  threads.args[n].data_array = data_array;
-                  threads.args[n].data_rows = data_rows;
                 }
 
               thread_setup_shared(threads.args + n++);

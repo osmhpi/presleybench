@@ -14,11 +14,14 @@ AC_PROG_CC
 AM_PROG_LEX
 AC_PROG_YACC
 
-AC_CHECK_LIB([numa], [numa_available], [numa_LIBS=-lnuma; AC_SUBST(numa_LIBS)])
+AC_CHECK_LIB([numa], [numa_available], [numa_LIBS=-lnuma; AC_SUBST(numa_LIBS)
+    AC_DEFINE_UNQUOTED([HAVE_NUMA], [1], [Define to 1 if you have libnuma])])
 
 AX_PTHREAD([], [AC_MSG_ERROR([missing pthread])])
 
 AX_CHECK_FUNC_DECL([asprintf], [stdio.h])
+
+AC_CHECK_FUNCS([__libc_calloc])
 
 AX_CHECK_ARGP
 AX_CHECK_PROGRAM_INVOCATION_NAME

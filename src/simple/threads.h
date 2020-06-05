@@ -16,13 +16,11 @@ struct thread_args_t
 
   size_t data_range;
 
-  union {
-    struct {
-      int *data_array;
-      size_t data_rows;
-    };
-    struct bplus_tree *tree;
+  struct {
+    int *data_array;
+    size_t data_rows;
   };
+  struct bplus_tree *tree;
 
   int cont;
 

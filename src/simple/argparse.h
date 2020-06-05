@@ -26,6 +26,8 @@ struct arguments_t
   enum pin_strategy_e pin_strategy;
   const char *_pin_strategy;
 
+  int verify;
+
   int verbosity;
 };
 

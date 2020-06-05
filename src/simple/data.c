@@ -8,17 +8,31 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifndef HAVE___LIBC_CALLOC
+#  include <dlfcn.h>
+#endif
+
 #define TREE_ORDER 64
 #define TREE_ENTRIES 64
 
 static int aggregation_enabled = 0;
 static size_t bytes = 0;
 
+#ifdef HAVE___LIBC_CALLOC
 extern void* __libc_calloc(size_t, size_t);
+#endif
 
 void*
 calloc (size_t nmemb, size_t size)
 {
+#ifndef HAVE___LIBC_CALLOC
+  static void*(*__libc_calloc)(size_t, size_t) = NULL;
+  if (__libc_calloc == NULL)
+    {
+      guard (NULL != (__libc_calloc = dlsym(RTLD_NEXT, "calloc"))) else { return NULL; }
+    }
+#endif
+
   if (aggregation_enabled)
     bytes += nmemb * size;
 
@@ -118,7 +132,7 @@ data_setup (size_t rows, size_t range)
       fprintf(stderr, "  populating replica for node #%i ...\n", topology.nodes.nodes[i].num);
 
       int res;
-      guard (0 == (res = numa_membind_to_node(topology.nodes.nodes[i].num))) else
+      guard (0 == (res = topology_membind_to_node(topology.nodes.nodes[i].num))) else
         {
           runtime_error("failed to bind memory allocations to node #%i", arguments.primary_node);
           return res;
@@ -141,7 +155,7 @@ data_setup (size_t rows, size_t range)
     }
 
   int res;
-  guard (0 == (res = numa_membind_to_node(arguments.primary_node))) else
+  guard (0 == (res = topology_membind_to_node(arguments.primary_node))) else
     {
       runtime_error("failed to bind memory allocations to node #%i", arguments.primary_node);
       return res;

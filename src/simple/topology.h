@@ -18,6 +18,8 @@ struct node_t
 
 struct topology_t
 {
+  int primary_node;
+
   struct {
     size_t n;
     struct node_t *nodes;
@@ -30,6 +32,10 @@ int topology_setup (void) att_warn_unused_result;
 
 struct node_t *topology_node_get (int) att_warn_unused_result;
 
-int numa_membind_to_node (int) att_warn_unused_result;
+int topology_pin_to_node (int) att_warn_unused_result;
+
+int topology_pin_to_cpu (int) att_warn_unused_result;
+
+int topology_membind_to_node (int) att_warn_unused_result;
 
 #endif
