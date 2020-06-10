@@ -87,7 +87,7 @@ thread_func_tree_search (void *arg)
   while (thread_arg->cont)
     {
       int needle = rand_r(&thread_arg->seed) % thread_arg->data_range;
-      int match = data_tree_search(thread_arg->tree, needle);
+      int match = data_index_search(thread_arg->index, needle);
 
       if (arguments.verify)
         {
@@ -130,7 +130,7 @@ threads_setup (void)
         }
       else
         {
-          n += topology.nodes.nodes[i].cpus.n + 1;
+          n += topology.nodes.nodes[i].cpus.n;
         }
     }
 
@@ -172,11 +172,11 @@ threads_setup (void)
                 {
                   if (arguments.replicate)
                     {
-                      threads.args[n].tree = topology.nodes.nodes[i].replica;
+                      threads.args[n].index = topology.nodes.nodes[i].replica;
                     }
                   else
                     {
-                      threads.args[n].tree = data_tree;
+                      threads.args[n].index = data_index;
                     }
                 }
 
@@ -185,7 +185,7 @@ threads_setup (void)
         }
       else // PIN_STRATEGY_NODES
         {
-          for (j = 0; j < topology.nodes.nodes[i].cpus.n + 1; ++j)
+          for (j = 0; j < topology.nodes.nodes[i].cpus.n; ++j)
             {
               fprintf(stderr, "  provisioning thread #%zu running %s on NODE #%i\n", n, _thread_func, topology.nodes.nodes[i].num);
               threads.args[n].id = n;
@@ -198,11 +198,11 @@ threads_setup (void)
                 {
                   if (arguments.replicate)
                     {
-                      threads.args[n].tree = topology.nodes.nodes[i].replica;
+                      threads.args[n].index = topology.nodes.nodes[i].replica;
                     }
                   else
                     {
-                      threads.args[n].tree = data_tree;
+                      threads.args[n].index = data_index;
                     }
                 }
 

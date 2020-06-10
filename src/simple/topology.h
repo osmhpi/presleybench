@@ -2,7 +2,7 @@
 #define TOPOLOGY_H
 
 #include "util/assert.h"
-#include "simple/bplustree.h"
+#include "simple/index/index.h"
 
 #include <stddef.h>
 
@@ -13,7 +13,7 @@ struct node_t
     size_t n;
     int *cpus;
   } cpus;
-  struct bplus_tree *replica;
+  struct index_t *replica;
 };
 
 struct topology_t

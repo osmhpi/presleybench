@@ -34,10 +34,11 @@ presleybench_LDADD = $(argp_LIBS)
 simplebench_SOURCES = \
   src/simple/main.c src/simple/main.h \
   src/simple/argparse.c src/simple/argparse.h \
-  src/simple/bplustree.c src/simple/bplustree.h \
   src/simple/threads.c src/simple/threads.h \
   src/simple/data.c src/simple/data.h \
   src/simple/topology.c src/simple/topology.h \
+  src/simple/index/index.c src/simple/index/index.h \
+  src/simple/index/bplustree.c src/simple/index/bplustree.h \
   src/util/assert.c src/util/assert.h
 
 simplebench_CFLAGS = $(pthread_CFLAGS)

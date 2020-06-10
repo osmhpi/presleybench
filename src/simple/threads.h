@@ -2,7 +2,7 @@
 #define THREADS_H
 
 #include "util/assert.h"
-#include "simple/bplustree.h"
+#include "simple/index/index.h"
 
 #include <pthread.h>
 
@@ -20,7 +20,7 @@ struct thread_args_t
     int *data_array;
     size_t data_rows;
   };
-  struct bplus_tree *tree;
+  struct index_t *index;
 
   int cont;
 

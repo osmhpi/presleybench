@@ -1,6 +1,5 @@
 
 #include "simple/data.h"
-#include "simple/bplustree.h"
 #include "simple/argparse.h"
 #include "simple/topology.h"
 
@@ -42,7 +41,7 @@ calloc (size_t nmemb, size_t size)
 size_t data_rows = 0;
 int *data_array = NULL;
 size_t data_range = 0;
-struct bplus_tree *data_tree = NULL;
+struct index_t *data_index = NULL;
 
 int
 data_setup (size_t rows, size_t range)
@@ -58,13 +57,15 @@ data_setup (size_t rows, size_t range)
   guard (NULL != (data_array = malloc(sizeof(*data_array) * range))) else { return 2; }
 
   int increment = range / 1000;
+  if (increment == 0)
+    increment = 1;
   size_t i;
   for (i = 0; i < range; ++i)
     {
       if (!(i % increment))
         {
-          int progress = i / increment;
-          fprintf(stderr, "\r    %c  %i.%i %%", "-\\|/"[progress % 4], progress / 10, progress % 10);
+          float progress = i / (float)range;
+          fprintf(stderr, "\r    %c  %.1f %%", "-\\|/"[(i / increment) % 4], progress * 100.0);
           fflush(stdout);
         }
       data_array[i] = i;
@@ -77,8 +78,8 @@ data_setup (size_t rows, size_t range)
     {
       if (!((range - i - 1) % increment))
         {
-          int progress = (range - i - 1) / increment;
-          fprintf(stderr, "\r    %c  %i.%i %%", "-\\|/"[progress % 4], progress / 10, progress % 10);
+          float progress = (range - i - 1) / (float)range;
+          fprintf(stderr, "\r    %c  %.1f %%", "-\\|/"[(i / increment) % 4], progress * 100.0);
           fflush(stdout);
         }
       int j = rand() % i;
@@ -100,21 +101,22 @@ data_setup (size_t rows, size_t range)
 
   // populate tree
   aggregation_enabled = 1;
-  guard (NULL != (data_tree = bplus_tree_init(TREE_ORDER, TREE_ENTRIES))) else { return 2; }
+  guard (NULL != (data_index = (struct index_t*)bplus_tree_init(TREE_ORDER, TREE_ENTRIES))) else { return 2; }
   aggregation_enabled = 0;
 
   increment = rows / 1000;
-
+  if (increment == 0)
+    increment = 1;
   for (i = 0; i < rows; ++i)
     {
       if (!(i % increment))
         {
-          int progress = i / increment;
-          fprintf(stderr, "\r    %c  %i.%i %%", "-\\|/"[progress % 4], progress / 10, progress % 10);
+          float progress = i / (float)rows;
+          fprintf(stderr, "\r    %c  %.1f %%", "-\\|/"[(i / increment) % 4], progress * 100.0);
           fflush(stdout);
         }
       aggregation_enabled = 1;
-      bplus_tree_put(data_tree, data_array[i], i);
+      bplus_tree_put((struct bplus_tree*)data_index, data_array[i], i);
       aggregation_enabled = 0;
     }
 
@@ -138,18 +140,18 @@ data_setup (size_t rows, size_t range)
           return res;
         }
 
-      guard (NULL != (topology.nodes.nodes[i].replica = bplus_tree_init(TREE_ORDER, TREE_ENTRIES))) else { return 2; }
+      guard (NULL != (topology.nodes.nodes[i].replica = (struct index_t*)bplus_tree_init(TREE_ORDER, TREE_ENTRIES))) else { return 2; }
 
       size_t j;
       for (j = 0; j < rows; ++j)
         {
           if (!(j % increment))
             {
-              int progress = j / increment;
-              fprintf(stderr, "\r    %c  %i.%i %%", "-\\|/"[progress % 4], progress / 10, progress % 10);
+              float progress = i / (float)rows;
+              fprintf(stderr, "\r    %c  %.1f %%", "-\\|/"[(i / increment) % 4], progress * 100.0);
               fflush(stdout);
             }
-          bplus_tree_put(topology.nodes.nodes[i].replica, data_array[j], j);
+          bplus_tree_put((struct bplus_tree*)topology.nodes.nodes[i].replica, data_array[j], j);
         }
       fprintf(stderr, "\r    *  100 %% \n");
     }
@@ -179,7 +181,7 @@ data_linear_search (int *array, size_t rows, int needle)
 }
 
 int
-data_tree_search (struct bplus_tree *tree, int needle)
+data_index_search (struct index_t *index, int needle)
 {
-  return bplus_tree_get(tree, needle);
+  return bplus_tree_get((struct bplus_tree*)index, needle);
 }
