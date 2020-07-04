@@ -13,7 +13,7 @@ struct node_t
     size_t n;
     int *cpus;
   } cpus;
-  struct index_t *replica;
+  struct index_t data_index;
 };
 
 struct topology_t
@@ -37,5 +37,7 @@ int topology_pin_to_node (int) att_warn_unused_result;
 int topology_pin_to_cpu (int) att_warn_unused_result;
 
 int topology_membind_to_node (int) att_warn_unused_result;
+
+size_t topology_cpu_count (void) att_warn_unused_result;
 
 #endif

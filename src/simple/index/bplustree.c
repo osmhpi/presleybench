@@ -826,6 +826,24 @@ struct bplus_tree *bplus_tree_init(int order, int entries)
         return tree;
 }
 
+int bplus_tree_initi(struct bplus_tree *tree, int order, int entries)
+{
+        /* The max order of non leaf nodes must be more than two */
+        assert(BPLUS_MAX_ORDER > BPLUS_MIN_ORDER);
+        assert(order <= BPLUS_MAX_ORDER && entries <= BPLUS_MAX_ENTRIES);
+
+        tree->root = NULL;
+        tree->order = order;
+        tree->entries = entries;
+
+        int i;
+        for (i = 0; i < BPLUS_MAX_LEVEL; i++) {
+                list_init(&tree->list[i]);
+        }
+
+        return 0;
+}
+
 void bplus_tree_deinit(struct bplus_tree *tree)
 {
         free(tree);

@@ -250,3 +250,17 @@ topology_membind_to_node (int node)
 
   return 0;
 }
+
+size_t
+topology_cpu_count (void)
+{
+  size_t res = 0;
+
+  size_t i;
+  for (i = 0; i < topology.nodes.n; ++i)
+    {
+      res += topology.nodes.nodes[i].cpus.n;
+    }
+
+  return res;
+}

@@ -2,166 +2,144 @@
 #include "simple/data.h"
 #include "simple/argparse.h"
 #include "simple/topology.h"
+#include "simple/memory_aggregator.h"
 
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifndef HAVE___LIBC_CALLOC
-#  include <dlfcn.h>
-#endif
-
-#define TREE_ORDER 64
-#define TREE_ENTRIES 64
-
-static int aggregation_enabled = 0;
-static size_t bytes = 0;
-
-#ifdef HAVE___LIBC_CALLOC
-extern void* __libc_calloc(size_t, size_t);
-#endif
-
-void*
-calloc (size_t nmemb, size_t size)
-{
-#ifndef HAVE___LIBC_CALLOC
-  static void*(*__libc_calloc)(size_t, size_t) = NULL;
-  if (__libc_calloc == NULL)
-    {
-      guard (NULL != (__libc_calloc = dlsym(RTLD_NEXT, "calloc"))) else { return NULL; }
-    }
-#endif
-
-  if (aggregation_enabled)
-    bytes += nmemb * size;
-
-  return __libc_calloc(nmemb, size);
-}
-
 size_t data_rows = 0;
 int *data_array = NULL;
 size_t data_range = 0;
-struct index_t *data_index = NULL;
+struct index_t data_index = { 0 };
 
-int
-data_setup (size_t rows, size_t range)
+static int progress_max;
+static int progress_step;
+
+#define PROGRESS_BEGIN(R) do { \
+    progress_max = (R); \
+    progress_step = (R) / 1000; \
+    if (progress_step <= 0) \
+      progress_step = 1; \
+  } while (0)
+
+#define PROGRESS_UPDATE(S, P) do { \
+    if (!((P) % progress_step)) { \
+      float progress = (P) / (float)progress_max; \
+      fprintf(stderr, "\r" S "%c  %.1f %%", "-\\|/"[(i / progress_step) % 4], progress * 100.0); \
+    } \
+  } while (0)
+
+#define PROGRESS_FINISH(S) do { \
+    fprintf(stderr, "\r" S "*  100.0 %% \n"); \
+  } while (0)
+
+static int
+populate_data_array (void)
 {
-  data_range = range;
-  data_rows = rows;
+  fprintf(stderr, "  generating values ...\n");
 
-  guard (data_rows <= data_range) else { errno = EINVAL; return 1; }
+  guard (NULL != (data_array = malloc(sizeof(*data_array) * data_range))) else { return 2; }
 
-  fprintf(stderr, "preparing data array ...\n");
-  fprintf(stderr, "  initializing values ...\n");
-
-  guard (NULL != (data_array = malloc(sizeof(*data_array) * range))) else { return 2; }
-
-  int increment = range / 1000;
-  if (increment == 0)
-    increment = 1;
   size_t i;
-  for (i = 0; i < range; ++i)
+  PROGRESS_BEGIN(data_range);
+  for (i = 0; i < data_range; ++i)
     {
-      if (!(i % increment))
-        {
-          float progress = i / (float)range;
-          fprintf(stderr, "\r    %c  %.1f %%", "-\\|/"[(i / increment) % 4], progress * 100.0);
-          fflush(stdout);
-        }
+      PROGRESS_UPDATE("    ", i);
+
       data_array[i] = i;
     }
-  fprintf(stderr, "\r    *  100 %% \n");
+  PROGRESS_FINISH("    ");
 
   fprintf(stderr, "  performing fisher-yates shuffle ...\n");
 
-  for (i = range - 1; i > 0; --i)
+  PROGRESS_BEGIN(data_range);
+  for (i = data_range - 1; i > 0; --i)
     {
-      if (!((range - i - 1) % increment))
-        {
-          float progress = (range - i - 1) / (float)range;
-          fprintf(stderr, "\r    %c  %.1f %%", "-\\|/"[(i / increment) % 4], progress * 100.0);
-          fflush(stdout);
-        }
+      PROGRESS_UPDATE("    ", data_range - i - 1);
+
       int j = rand() % i;
       int tmp = data_array[j];
       data_array[j] = data_array[i];
       data_array[i] = tmp;
     }
-  fprintf(stderr, "\r    *  100 %% \n");
-  fprintf(stderr, "  data size: %zu Bytes\n", rows * sizeof(*data_array));
+  PROGRESS_FINISH("    ");
 
   // truncate to SIZE
-  guard (NULL != (data_array = realloc(data_array, sizeof(*data_array) * rows))) else { return 2; }
+  guard (NULL != (data_array = realloc(data_array, sizeof(*data_array) * data_rows))) else { return 2; }
 
-  if (!arguments.tree_search)
-    return 0;
+  return 0;
+}
 
-  fprintf(stderr, "preparing B+ tree ...\n");
+static int
+populate_data_index (struct index_t *index)
+{
+  int res;
+
+  // prepare allocation aggregator
+  guard (0 == (res = aggregator_clear())) else { return res; }
+
+  // prepare index
+  aggregator_enabled = 1;
+  guard (0 == (res = index_init(index, arguments.index_type))) else { return res; }
+  guard (0 == (res = index->prepare(index))) else { return res; }
+  aggregator_enabled = 0;
+
+  // populate index
   fprintf(stderr, "  populating values ...\n");
 
-  // populate tree
-  aggregation_enabled = 1;
-  guard (NULL != (data_index = (struct index_t*)bplus_tree_init(TREE_ORDER, TREE_ENTRIES))) else { return 2; }
-  aggregation_enabled = 0;
-
-  increment = rows / 1000;
-  if (increment == 0)
-    increment = 1;
-  for (i = 0; i < rows; ++i)
+  size_t i;
+  PROGRESS_BEGIN(data_rows);
+  for (i = 0; i < data_rows; ++i)
     {
-      if (!(i % increment))
-        {
-          float progress = i / (float)rows;
-          fprintf(stderr, "\r    %c  %.1f %%", "-\\|/"[(i / increment) % 4], progress * 100.0);
-          fflush(stdout);
-        }
-      aggregation_enabled = 1;
-      bplus_tree_put((struct bplus_tree*)data_index, data_array[i], i);
-      aggregation_enabled = 0;
+      PROGRESS_UPDATE("    ", i);
+
+      aggregator_enabled = 1;
+      guard (0 == (res = index->put(index, data_array[i], i))) else { return res; }
+      aggregator_enabled = 0;
     }
+  PROGRESS_FINISH("    ");
 
-  fprintf(stderr, "\r    *  100 %% \n");
-  fprintf(stderr, "  tree size: %zu Bytes\n", bytes);
+  return 0;
+}
 
+int
+data_setup (size_t rows, size_t range)
+{
+  int res;
+
+  data_range = range;
+  data_rows = rows;
+
+  // don't populate more rows than we have possible values
+  guard (data_rows <= data_range) else { errno = EINVAL; return 1; }
+
+  fprintf(stderr, "preparing data array ...\n");
+  guard (0 == (res = populate_data_array())) else { return res; }
+  fprintf(stderr, "  data size: %zu Bytes\n", rows * sizeof(*data_array));
+
+  // finish here, if we don't need to populate an index
+  if (!arguments.index_search)
+    return 0;
+
+  fprintf(stderr, "preparing %s index ...\n", index_type_name(arguments.index_type));
+  guard (0 == (res = populate_data_index(&data_index))) else { return res; }
+  fprintf(stderr, "  index size: %zu Bytes\n", aggregator_bytes);
+
+  // finish here, if we don't need to replicate the index
   if (!arguments.replicate)
     return 0;
 
-  fprintf(stderr, "preparing B+ tree replicates ...\n");
-
+  size_t i;
   for (i = 0; i < topology.nodes.n; ++i)
     {
-      topology.nodes.nodes[i].replica = NULL;
-      fprintf(stderr, "  populating replica for node #%i ...\n", topology.nodes.nodes[i].num);
+      fprintf(stderr, "preparing %s index replica on node #%i ...\n", index_type_name(arguments.index_type), topology.nodes.nodes[i].num);
 
-      int res;
-      guard (0 == (res = topology_membind_to_node(topology.nodes.nodes[i].num))) else
-        {
-          runtime_error("failed to bind memory allocations to node #%i", arguments.primary_node);
-          return res;
-        }
-
-      guard (NULL != (topology.nodes.nodes[i].replica = (struct index_t*)bplus_tree_init(TREE_ORDER, TREE_ENTRIES))) else { return 2; }
-
-      size_t j;
-      for (j = 0; j < rows; ++j)
-        {
-          if (!(j % increment))
-            {
-              float progress = i / (float)rows;
-              fprintf(stderr, "\r    %c  %.1f %%", "-\\|/"[(i / increment) % 4], progress * 100.0);
-              fflush(stdout);
-            }
-          bplus_tree_put((struct bplus_tree*)topology.nodes.nodes[i].replica, data_array[j], j);
-        }
-      fprintf(stderr, "\r    *  100 %% \n");
+      guard (0 == (res = topology_membind_to_node(topology.nodes.nodes[i].num))) else { return res; }
+      guard (0 == (res = populate_data_index(&topology.nodes.nodes[i].data_index))) else { return res; }
     }
 
-  int res;
-  guard (0 == (res = topology_membind_to_node(arguments.primary_node))) else
-    {
-      runtime_error("failed to bind memory allocations to node #%i", arguments.primary_node);
-      return res;
-    }
+  guard (0 == (res = topology_membind_to_node(arguments.primary_node))) else { return res; }
 
   return 0;
 }
@@ -169,7 +147,6 @@ data_setup (size_t rows, size_t range)
 int
 data_linear_search (int *array, size_t rows, int needle)
 {
-  // linear search
   size_t i;
   for (i = 0; i < rows; ++i)
     {
@@ -183,5 +160,5 @@ data_linear_search (int *array, size_t rows, int needle)
 int
 data_index_search (struct index_t *index, int needle)
 {
-  return bplus_tree_get((struct bplus_tree*)index, needle);
+  return data_index.get(index, needle);
 }

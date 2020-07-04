@@ -20,9 +20,10 @@ const char args_doc[] = "[--]";
 static struct argp_option options[] =
 {
   {"primary", 'p', "<node>", 0, "the id of the numa node for the primary data placement", 0},
-  {"replicate", 'e', NULL, 0, "replicate the tree data across nodes (implies -b)", 0},
+  {"replicate", 'e', NULL, 0, "replicate the index data across nodes (implies -i)", 0},
   {"verify", 'V', NULL, 0, "perform additional checks during the number crunching. useful for testing index implementations.", 0 },
-  {"bplus", 'b', NULL, 0, "perform bplus tree search instead of linear scan", 0},
+  {"index", 'i', NULL, 0, "perform index search instead of linear scan", 0},
+  {"index-type", 'I', "<bplus|...>", 0, "the type of index to use. default: bplus (implies -i)", 0},
   {"rows", 'r', "<number>", 0, "the amount of rows to populate", 0},
   {"sparsity", 's', "<fraction>", 0, "the sparsity of populated values. must be >= 1", 0},
   {"pin-strategy", 'P', "<cpu|node>", 0, "what level of topology to pin threads to. default: cpu", 0},
@@ -52,13 +53,26 @@ parse_opt (int key, char *arg, struct argp_state *state)
       }
     case 'e':
       args->replicate = 1;
-      args->tree_search = 1;
+      args->index_search = 1;
       break;
     case 'V':
       args->verify = 1;
       break;
-    case 'b':
-      args->tree_search = 1;
+    case 'i':
+      args->index_search = 1;
+      break;
+    case 'I':
+      args->index_search = 1;
+      if (!strcmp("bplus", arg))
+        {
+          args->index_type = INDEX_TYPE_BPLUS;
+        }
+      else
+        {
+          runtime_error("invalid index type: '%s'", arg);
+          return 1;
+        }
+      args->_index_type = arg;
       break;
     case 'r':
       {
@@ -119,7 +133,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
 
 static struct argp argp = {options, &parse_opt, args_doc, doc, 0, 0, 0};
 
-struct arguments_t arguments = { DEFAULT_ROWS, DEFAULT_SPARSITY, -1, NULL, 0, 0, PIN_STRATEGY_CPU, NULL, 0, 0 };
+struct arguments_t arguments = { DEFAULT_ROWS, DEFAULT_SPARSITY, -1, NULL, 0, 0, INDEX_TYPE_BPLUS, NULL, PIN_STRATEGY_CPU, NULL, 0, 0 };
 
 int
 argparse (int argc, char *argv[])

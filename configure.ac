@@ -21,7 +21,7 @@ AX_PTHREAD([], [AC_MSG_ERROR([missing pthread])])
 
 AX_CHECK_FUNC_DECL([asprintf], [stdio.h])
 
-AC_CHECK_FUNCS([__libc_calloc])
+AC_CHECK_FUNCS([__libc_malloc __libc_calloc __libc_realloc __libc_free])
 
 AX_CHECK_ARGP
 AX_CHECK_PROGRAM_INVOCATION_NAME

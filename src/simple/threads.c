@@ -52,6 +52,8 @@ thread_func_linear_search (void *arg)
 
   //fprintf(stderr, "thread #%i: post-pin node of stack data: #%i\n", thread_arg->id, node);
 
+  // TODO: stack pages seem to be on FAR NODE!
+
   while (thread_arg->cont)
     {
       int needle = rand_r(&thread_arg->seed) % thread_arg->data_range;
@@ -61,7 +63,8 @@ thread_func_linear_search (void *arg)
         {
           guard (match == -1 || thread_arg->data_array[match] == needle) else
             {
-              runtime_error("thread #%i:[%llu] search produced incorrect result. %i[%i] vs %i, Aborting.", thread_arg->id, thread_arg->ctr, thread_arg->data_array[match], match, needle);
+              runtime_error("thread #%i:[%llu] search produced incorrect result. %i[%i] vs %i, Aborting.",
+                            thread_arg->id, thread_arg->ctr, thread_arg->data_array[match], match, needle);
               return NULL;
             }
         }
@@ -73,7 +76,7 @@ thread_func_linear_search (void *arg)
 }
 
 static void*
-thread_func_tree_search (void *arg)
+thread_func_index_search (void *arg)
 {
   struct thread_args_t *thread_arg = arg;
 
@@ -94,7 +97,8 @@ thread_func_tree_search (void *arg)
           guard (match == -1 || thread_arg->data_array[match] == needle) else
             {
               int real_match = data_linear_search(thread_arg->data_array, thread_arg->data_rows, needle);
-              runtime_error("thread #%i:[%llu] search produced incorrect result. %i[%i] vs %i[%i], Aborting.", thread_arg->id, thread_arg->ctr, thread_arg->data_array[match], match, needle, real_match);
+              runtime_error("thread #%i:[%llu] search produced incorrect result. %i[%i] vs %i[%i], Aborting.",
+                            thread_arg->id, thread_arg->ctr, thread_arg->data_array[match], match, needle, real_match);
               return NULL;
             }
         }
@@ -105,111 +109,48 @@ thread_func_tree_search (void *arg)
   return NULL;
 }
 
-static void
-thread_setup_shared (struct thread_args_t *args)
-{
-  args->round = 0;
-  args->ctr = 0;
-  args->seed = threads.seed;
-  args->data_range = data_range;
-  args->cont = 1;
-}
-
 int
 threads_setup (void)
 {
-  fprintf(stderr, "starting threads ...\n");
+  threads.n = topology_cpu_count();
 
-  size_t n = 0;
-  size_t i;
-  for (i = 0; i < topology.nodes.n; ++i)
-    {
-      if (arguments.pin_strategy == PIN_STRATEGY_CPU)
-        {
-          n += topology.nodes.nodes[i].cpus.n;
-        }
-      else
-        {
-          n += topology.nodes.nodes[i].cpus.n;
-        }
-    }
-
-  threads.n = n;
+  fprintf(stderr, "starting %zu threads on %zu cpus across %zu nodes...\n", threads.n, threads.n, topology.nodes.n);
 
   guard (NULL != (threads.threads = malloc(sizeof(*threads.threads) * threads.n))) else { return 2; }
   guard (NULL != (threads.args = malloc(sizeof(*threads.args) * threads.n))) else { return 2; }
 
   threads.seed = time(NULL);
 
-  void*(*thread_func)(void*) = NULL;
-  const char *_thread_func = NULL;
-  if (arguments.tree_search)
-    {
-      thread_func = &thread_func_tree_search;
-      _thread_func = "tree_search";
-    }
-  else
-    {
-      thread_func = &thread_func_linear_search;
-      _thread_func = "linear_search";
-    }
+  void*(*thread_func)(void*) = arguments.index_search ? &thread_func_index_search : thread_func_linear_search;
+  const char *_thread_func = arguments.index_search ? "index_search" : "linear_search";
 
-  size_t j;
-  for (n = 0, i = 0; i < topology.nodes.n; ++i)
-    {
-      if (arguments.pin_strategy == PIN_STRATEGY_CPU)
-        {
-          for (j = 0; j < topology.nodes.nodes[i].cpus.n; ++j)
-            {
-              fprintf(stderr, "  provisioning thread #%zu running %s on CPU #%i\n", n, _thread_func, topology.nodes.nodes[i].cpus.cpus[j]);
-              threads.args[n].id = n;
-              threads.args[n].node = topology.nodes.nodes[i].num;
-              threads.args[n].cpu = topology.nodes.nodes[i].cpus.cpus[j];
+  size_t i, j, n;
+  for (i = 0, n = 0; i < topology.nodes.n; ++i)
+    for (j = 0; j < topology.nodes.nodes[i].cpus.n; ++j, ++n)
+      {
+        if (arguments.pin_strategy == PIN_STRATEGY_NODE)
+          fprintf(stderr, "  provisioning thread #%zu running %s on NODE #%i\n", n, _thread_func, topology.nodes.nodes[i].num);
+        else
+          fprintf(stderr, "  provisioning thread #%zu running %s on CPU #%i\n", n, _thread_func, topology.nodes.nodes[i].cpus.cpus[j]);
 
-              threads.args[n].data_array = data_array;
-              threads.args[n].data_rows = data_rows;
-              if (arguments.tree_search)
-                {
-                  if (arguments.replicate)
-                    {
-                      threads.args[n].index = topology.nodes.nodes[i].replica;
-                    }
-                  else
-                    {
-                      threads.args[n].index = data_index;
-                    }
-                }
+        threads.args[n].id = n;
+        threads.args[n].node = topology.nodes.nodes[i].num;
+        threads.args[n].cpu = topology.nodes.nodes[i].cpus.cpus[j];
 
-              thread_setup_shared(threads.args + n++);
-            }
-        }
-      else // PIN_STRATEGY_NODES
-        {
-          for (j = 0; j < topology.nodes.nodes[i].cpus.n; ++j)
-            {
-              fprintf(stderr, "  provisioning thread #%zu running %s on NODE #%i\n", n, _thread_func, topology.nodes.nodes[i].num);
-              threads.args[n].id = n;
-              threads.args[n].node = topology.nodes.nodes[i].num;
-              threads.args[n].cpu = -1;
+        threads.args[n].data_array = data_array;
+        threads.args[n].data_rows = data_rows;
 
-              threads.args[n].data_array = data_array;
-              threads.args[n].data_rows = data_rows;
-              if (arguments.tree_search)
-                {
-                  if (arguments.replicate)
-                    {
-                      threads.args[n].index = topology.nodes.nodes[i].replica;
-                    }
-                  else
-                    {
-                      threads.args[n].index = data_index;
-                    }
-                }
+        threads.args[n].round = 0;
+        threads.args[n].ctr = 0;
+        threads.args[n].seed = threads.seed;
+        threads.args[n].data_range = data_range;
+        threads.args[n].cont = 1;
 
-              thread_setup_shared(threads.args + n++);
-            }
-        }
-    }
+        if (arguments.replicate)
+          threads.args[n].index = &topology.nodes.nodes[i].data_index;
+        else
+          threads.args[n].index = &data_index;
+      }
 
   int res;
   for (i = 0; i < threads.n; ++i)

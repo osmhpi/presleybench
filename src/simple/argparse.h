@@ -4,6 +4,7 @@
 #include "main.h"
 
 #include "util/assert.h"
+#include "simple/index/index.h"
 
 #include <argp.h>
 
@@ -21,7 +22,10 @@ struct arguments_t
   int primary_node;
   const char *_primary_node;
   int replicate;
-  int tree_search;
+
+  int index_search;
+  enum index_type_e index_type;
+  const char *_index_type;
 
   enum pin_strategy_e pin_strategy;
   const char *_pin_strategy;

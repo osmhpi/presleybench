@@ -37,6 +37,7 @@ simplebench_SOURCES = \
   src/simple/threads.c src/simple/threads.h \
   src/simple/data.c src/simple/data.h \
   src/simple/topology.c src/simple/topology.h \
+  src/simple/memory_aggregator.c src/simple/memory_aggregator.h \
   src/simple/index/index.c src/simple/index/index.h \
   src/simple/index/bplustree.c src/simple/index/bplustree.h \
   src/util/assert.c src/util/assert.h
