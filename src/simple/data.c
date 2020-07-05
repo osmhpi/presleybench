@@ -95,7 +95,8 @@ populate_data_index (struct index_t *index)
       PROGRESS_UPDATE("    ", i);
 
       aggregator_enabled = 1;
-      guard (0 == (res = index->put(index, data_array[i], i))) else { return res; }
+      // TODO: make bplustree work with a value of 0, to avoid the need for 1-indexed arrays here
+      guard (0 == (res = index->put(index, data_array[i], i + 1))) else { return res; }
       aggregator_enabled = 0;
     }
   PROGRESS_FINISH("    ");

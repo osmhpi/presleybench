@@ -23,7 +23,7 @@ static struct argp_option options[] =
   {"replicate", 'e', NULL, 0, "replicate the index data across nodes (implies -i)", 0},
   {"verify", 'V', NULL, 0, "perform additional checks during the number crunching. useful for testing index implementations.", 0 },
   {"index", 'i', NULL, 0, "perform index search instead of linear scan", 0},
-  {"index-type", 'I', "<bplus|...>", 0, "the type of index to use. default: bplus (implies -i)", 0},
+  {"index-type", 'I', "<bplus|groupkey|...>", 0, "the type of index to use. default: bplus (implies -i)", 0},
   {"rows", 'r', "<number>", 0, "the amount of rows to populate", 0},
   {"sparsity", 's', "<fraction>", 0, "the sparsity of populated values. must be >= 1", 0},
   {"pin-strategy", 'P', "<cpu|node>", 0, "what level of topology to pin threads to. default: cpu", 0},
@@ -66,6 +66,10 @@ parse_opt (int key, char *arg, struct argp_state *state)
       if (!strcmp("bplus", arg))
         {
           args->index_type = INDEX_TYPE_BPLUS;
+        }
+      else if (!strcmp("groupkey", arg))
+        {
+          args->index_type = INDEX_TYPE_GROUPKEY;
         }
       else
         {

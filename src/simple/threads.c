@@ -94,11 +94,12 @@ thread_func_index_search (void *arg)
 
       if (arguments.verify)
         {
-          guard (match == -1 || thread_arg->data_array[match] == needle) else
+          // TODO: make bplustree work with a value of 0, to avoid the need for 1-indexed arrays here
+          guard (match == -1 || thread_arg->data_array[match - 1] == needle) else
             {
               int real_match = data_linear_search(thread_arg->data_array, thread_arg->data_rows, needle);
               runtime_error("thread #%i:[%llu] search produced incorrect result. %i[%i] vs %i[%i], Aborting.",
-                            thread_arg->id, thread_arg->ctr, thread_arg->data_array[match], match, needle, real_match);
+                            thread_arg->id, thread_arg->ctr, thread_arg->data_array[match - 1], match - 1, needle, real_match);
               return NULL;
             }
         }

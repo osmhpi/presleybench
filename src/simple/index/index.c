@@ -13,22 +13,6 @@ index_bplus_prepare (struct index_t *index)
   return bplus_tree_initi((struct bplus_tree*)index, bplus_tree_order, bplus_tree_entries);
 }
 
-static int
-index_bplus_put (struct index_t *index, int key, int value)
-{
-  // 0 is a valid data value for our use case, but the bplus implementation chokes on it
-  int data = value + 1;
-  return bplus_tree_put((struct bplus_tree*)index, key, data);
-}
-
-static int
-index_bplus_get (struct index_t *index, int key)
-{
-  int res = bplus_tree_get((struct bplus_tree*)index, key);
-  // reverse our value modification in bplus_put
-  return (res > 0 ? res - 1 : res);
-}
-
 int
 index_init (struct index_t *index, enum index_type_e type)
 {
@@ -36,8 +20,13 @@ index_init (struct index_t *index, enum index_type_e type)
     {
       case INDEX_TYPE_BPLUS:
         index->prepare = &index_bplus_prepare;
-        index->get = &index_bplus_get;
-        index->put = &index_bplus_put;
+        index->get = (index_get_func*)&bplus_tree_get;
+        index->put = (index_put_func*)&bplus_tree_put;
+        break;
+      case INDEX_TYPE_GROUPKEY:
+        index->prepare = (index_prepare_func*)&groupkey_prepare;
+        index->get = (index_get_func*)&groupkey_get;
+        index->put = (index_put_func*)&groupkey_put;
         break;
       default:
         runtime_error("unrecognized index type %i (%s)", arguments.index_type, arguments._index_type);
@@ -56,6 +45,8 @@ index_type_name (enum index_type_e type)
     {
       case INDEX_TYPE_BPLUS:
         return "B+ Tree";
+      case INDEX_TYPE_GROUPKEY:
+        return "GroupKey";
       default:
         debug_error("unrecognized index type %i (%s)", arguments.index_type, arguments._index_type);
         return "unknown";
