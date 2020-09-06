@@ -42,10 +42,11 @@ simplebench_SOURCES = \
   src/simple/index/bplustree.c src/simple/index/bplustree.h \
   src/simple/index/groupkey.c src/simple/index/groupkey.h \
   src/util/assert.c src/util/assert.h
+#  src/simple/presleybench_simple_threads.c src/simple/presleybench_simple_threads.h
 
 simplebench_CFLAGS = $(pthread_CFLAGS)
 
-simplebench_LDADD = $(argp_LIBS) $(pthread_LIBS) $(numa_LIBS)
+simplebench_LDADD = -ldl $(argp_LIBS) $(pthread_LIBS) $(numa_LIBS)
 
 BUILT_SOURCES = \
   src/schema/parser.h

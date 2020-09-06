@@ -5,6 +5,9 @@
 #include "simple/topology.h"
 #include "simple/argparse.h"
 
+//#define TRACEPOINT_DEFINE
+//#include "simple/presleybench_simple_threads.h"
+
 #include <errno.h>
 #include <stdlib.h>
 
@@ -21,7 +24,7 @@ pin_thread (struct thread_args_t *arg)
     }
   else
     {
-      guard (0 == (res = topology_pin_to_cpu(arg->node))) else { return res; }
+      guard (0 == (res = topology_pin_to_cpu(arg->cpu))) else { return res; }
     }
 
   guard (0 == (res = topology_membind_to_node(arg->node))) else { return res; }
@@ -105,6 +108,7 @@ thread_func_index_search (void *arg)
         }
 
       thread_arg->ctr++;
+      //tracepoint(presleybench_simple_threads, execute_task, thread_arg->cpu, thread_arg->node);
     }
 
   return NULL;

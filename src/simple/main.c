@@ -16,6 +16,25 @@ handle_sigusr1 (int sigspec)
 {
   (void)sigspec;
 
+  printf("threadid,nodeid,cpuid,round,counter\n");
+
+  size_t i;
+  for (i = 0; i < threads.n; ++i)
+    {
+      printf("%i,%i,%i,%i,%llu\n",
+             threads.args[i].id,
+             threads.args[i].node,
+             threads.args[i].cpu,
+             threads.args[i].round,
+             threads.args[i].ctr);
+    }
+}
+
+void
+handle_sigusr2 (int sigspec)
+{
+  (void)sigspec;
+
   printf("resetting thread counters\n");
 
   // TODO: reset random seed? barrier?
@@ -25,25 +44,6 @@ handle_sigusr1 (int sigspec)
     {
       threads.args[i].round++;
       threads.args[i].ctr = 0;
-    }
-}
-
-void
-handle_sigusr2 (int sigspec)
-{
-  (void)sigspec;
-
-  printf("threadid,nodeid,cpuid,round,counter\n");
-
-  size_t i;
-  for (i = 0; i < threads.n; ++i)
-    {
-      printf(" %i,%i,%i,%i,%llu\n",
-             threads.args[i].id,
-             threads.args[i].node,
-             threads.args[i].cpu,
-             threads.args[i].round,
-             threads.args[i].ctr);
     }
 }
 
@@ -109,8 +109,8 @@ main (int argc, char *argv[])
           "\n"
           "starting performance run.\n"
           "send:\n"
-          "  SIGUSR1 - to reset counters\n"
-          "  SIGUSR2 - to print counters\n"
+          "  SIGUSR2 - to reset counters\n"
+          "  SIGUSR1 - to print counters\n"
           "  SIGINT  - to quit\n");
 
   // wait for workers to terminate

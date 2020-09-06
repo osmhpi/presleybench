@@ -17,6 +17,9 @@ AC_PROG_YACC
 AC_CHECK_LIB([numa], [numa_available], [numa_LIBS=-lnuma; AC_SUBST(numa_LIBS)
     AC_DEFINE_UNQUOTED([HAVE_NUMA], [1], [Define to 1 if you have libnuma])])
 
+AC_CHECK_LIB([lttng-ust], [lttng_ust_init], [lttng_LIBS=-llttng-ust; AC_SUBST(lttng_LIBS)
+    AC_DEFINE_UNQUOTED([HAVE_LTTNG], [1], [Define to 1 if you have lttng])])
+
 AX_PTHREAD([], [AC_MSG_ERROR([missing pthread])])
 
 AX_CHECK_FUNC_DECL([asprintf], [stdio.h])
