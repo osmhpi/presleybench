@@ -1,3 +1,6 @@
+#ifndef PRESLEYBENCH_SIMPLE_THREADS_H
+#define PRESLEYBENCH_SIMPLE_THREADS_H
+
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER presleybench_simple_threads
 
@@ -37,3 +40,5 @@ TRACEPOINT_EVENT(
         ctf_integer(int, node_id, node_id)
     )
 )
+
+#endif

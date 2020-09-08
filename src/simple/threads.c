@@ -5,8 +5,10 @@
 #include "simple/topology.h"
 #include "simple/argparse.h"
 
-//#define TRACEPOINT_DEFINE
-//#include "simple/presleybench_simple_threads.h"
+#ifdef HAVE_LTTNG
+#  define TRACEPOINT_DEFINE
+#  include "simple/presleybench_simple_threads.h"
+#endif
 
 #include <errno.h>
 #include <stdlib.h>

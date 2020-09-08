@@ -41,8 +41,8 @@ simplebench_SOURCES = \
   src/simple/index/index.c src/simple/index/index.h \
   src/simple/index/bplustree.c src/simple/index/bplustree.h \
   src/simple/index/groupkey.c src/simple/index/groupkey.h \
-  src/util/assert.c src/util/assert.h
-#  src/simple/presleybench_simple_threads.c src/simple/presleybench_simple_threads.h
+  src/util/assert.c src/util/assert.h \
+  src/simple/presleybench_simple_threads.c src/simple/presleybench_simple_threads.h
 
 simplebench_CFLAGS = $(pthread_CFLAGS)
 
