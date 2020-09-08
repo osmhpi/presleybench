@@ -1,1 +1,0 @@
-kill -USR1 $1 && sleep 5 && kill -USR2 $1
