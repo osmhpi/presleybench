@@ -5,7 +5,7 @@
 #include "simple/topology.h"
 #include "simple/argparse.h"
 
-#ifdef HAVE_LTTNG
+#if defined(HAVE_LTTNG) && defined(TRACEPOINTS_ENABLED)
 #  define TRACEPOINT_DEFINE
 #  include "simple/presleybench_simple_threads.h"
 #endif

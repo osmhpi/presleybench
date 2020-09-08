@@ -20,6 +20,17 @@ AC_CHECK_LIB([numa], [numa_available], [numa_LIBS=-lnuma; AC_SUBST(numa_LIBS)
 AC_CHECK_LIB([lttng-ust], [lttng_ust_init], [lttng_LIBS=-llttng-ust; AC_SUBST(lttng_LIBS)
     AC_DEFINE_UNQUOTED([HAVE_LTTNG], [1], [Define to 1 if you have lttng])])
 
+AC_ARG_ENABLE([tracepoints],
+    AS_HELP_STRING([--enable-tracepoints], [Enable libttng powered tracepoint support]))
+
+AS_IF([test "x$enable_tracepoints" = "xyes"], [
+  AS_IF([test "x$have_lttng" = "xyes"], [
+    AC_DEFINE_UNQUOTED([TRACEPOINTS_ENABLED], [1], [Define to 1 if tracepoints are enabled. Requires lttng])
+  ], [
+    AC_MSG_ERROR([Cannot enable tracepoints: missing lttng])
+  ])
+])
+
 AX_PTHREAD([], [AC_MSG_ERROR([missing pthread])])
 
 AX_CHECK_FUNC_DECL([asprintf], [stdio.h])
