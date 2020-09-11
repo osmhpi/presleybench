@@ -148,6 +148,7 @@ threads_setup (void)
         threads.args[n].data_rows = data_rows;
 
         threads.args[n].round = 0;
+        threads.args[n].prev_ctr = 0;
         threads.args[n].ctr = 0;
         threads.args[n].seed = threads.seed;
         threads.args[n].data_range = data_range;

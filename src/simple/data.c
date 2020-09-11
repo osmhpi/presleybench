@@ -7,6 +7,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 size_t data_rows = 0;
 int *data_array = NULL;
@@ -24,14 +25,18 @@ static int progress_step;
   } while (0)
 
 #define PROGRESS_UPDATE(S, P) do { \
-    if (!((P) % progress_step)) { \
+    if (isatty(fileno(stderr)) && !((P) % progress_step)) { \
       float progress = (P) / (float)progress_max; \
       fprintf(stderr, "\r" S "%c  %.1f %%", "-\\|/"[(i / progress_step) % 4], progress * 100.0); \
     } \
   } while (0)
 
 #define PROGRESS_FINISH(S) do { \
-    fprintf(stderr, "\r" S "*  100.0 %% \n"); \
+    if (isatty(fileno(stderr))) { \
+      fprintf(stderr, "\r" S "*  100.0 %% \n"); \
+    } else { \
+      fprintf(stderr, S "*  100.0 %% \n"); \
+    } \
   } while (0)
 
 static int

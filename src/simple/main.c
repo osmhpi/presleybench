@@ -11,6 +11,8 @@
 #include <stdlib.h>
 #include <signal.h>
 
+// TODO: fix race condition in reset
+
 void
 handle_sigusr1 (int sigspec)
 {
@@ -26,7 +28,7 @@ handle_sigusr1 (int sigspec)
              threads.args[i].node,
              threads.args[i].cpu,
              threads.args[i].round,
-             threads.args[i].ctr);
+             threads.args[i].ctr - threads.args[i].prev_ctr);
     }
 }
 
@@ -43,7 +45,7 @@ handle_sigusr2 (int sigspec)
   for (i = 0; i < threads.n; ++i)
     {
       threads.args[i].round++;
-      threads.args[i].ctr = 0;
+      threads.args[i].prev_ctr = threads.args[i].ctr;
     }
 }
 
