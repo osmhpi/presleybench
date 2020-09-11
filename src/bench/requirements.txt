@@ -1,2 +1,3 @@
 gitpython
 psycopg2-binary
+sh
