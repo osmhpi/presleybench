@@ -32,3 +32,6 @@ scripts/
 stamp-h1
 .dirstamp
 .deps/
+
+#python virtualenv
+.venv/
