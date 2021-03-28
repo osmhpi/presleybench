@@ -8,7 +8,7 @@ AC_DEFUN([AX_CHECK_PROGRAM_INVOCATION_NAME], [
       [return (int)program_invocation_name;]
       )],
     [AC_MSG_RESULT([yes])
-     AC_DEFINE_UNQUOTED([HAVE_PROGRAM_INVOCATION_NAME], [$libc_has_program_invocation_name],
+     AC_DEFINE_UNQUOTED([HAVE_PROGRAM_INVOCATION_NAME], [1],
        [Define to 1, if the libc has program_invocation_name])],
     [AC_MSG_RESULT([no])]
   )
