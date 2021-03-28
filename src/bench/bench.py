@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 import sys
+import pwd 
+import os
 import signal
 import subprocess
 import threading
@@ -13,7 +15,7 @@ import psycopg2
 
 
 CONNECTION = "postgres://postgres:password@192.168.42.38:5432/presley"
-SQL_INIT = "INSERT INTO presley.experiments (id, starttime, endtime, commitid, name) VALUES (%s, %s, %s, %s, %s);"
+SQL_INIT = "INSERT INTO presley.experiments (id, starttime, endtime, commitid, name, user) VALUES (%s, %s, %s, %s, %s, %s);"
 SQL_BENCH = "INSERT INTO presley.queries (timestamp, thread_id, node_id, cpu_id, round, count, experiment) VALUES (%s, %s, %s, %s, %s, %s, %s);"
 
 
@@ -44,10 +46,11 @@ def main():
     repo = git.Repo(search_parent_directories=True)
     sha = repo.head.object.hexsha
     experiment_id = uuid.uuid4().hex
+    os_username = pwd.getpwuid(os.getuid()).pw_name
     with psycopg2.connect(CONNECTION) as conn:
         cur = conn.cursor()
         try:
-            data = (experiment_id, datetime.now(), datetime.now(), sha, sys.argv[1])
+            data = (experiment_id, datetime.now(), datetime.now(), sha, sys.argv[1], os_username)
             cur.execute(SQL_INIT, data)
         except (Exception, psycopg2.Error) as error:
             print("Postgres Error: " + error)
