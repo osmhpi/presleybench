@@ -3,5 +3,3 @@
 python3 src/bench/bench_fs.py ./simplebench
 python3 src/bench/bench_fs.py ./simplebench -i -Ibplus
 python3 src/bench/bench_fs.py ./simplebench -e -i -Ibplus
-python3 src/bench/bench_fs.py ./simplebench -i -Igroupkey
-python3 src/bench/bench_fs.py ./simplebench -e -i -Igroupkey

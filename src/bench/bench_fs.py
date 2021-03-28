@@ -127,7 +127,7 @@ class Measurement:
         # TODO: insert into database
 
     def __repr__(self):
-        return "%s, %s, %s, %s, %s, %s, %s" % (self._series._index, self._round, self._cpu, self._node, self._thread, self._timestamp, self._value)
+        return "%s;%s;%s;%s;%s;%s;%s" % (self._series._index, self._round, self._cpu, self._node, self._thread, self._timestamp, self._value)
 
 # prepare an event that will signal the end of the init phase of the started command
 ready = multiprocessing.Event()
@@ -138,6 +138,8 @@ with Experiment(description) as experiment:
     print(experiment)
 
     # for 10..10000000, increasing exponentially
+    #for size in (10000000):
+    #element = 8 byte integer * 10.000.000 = 
     for size in (10**i for i in range(2, 8)):
 
         print(size)
