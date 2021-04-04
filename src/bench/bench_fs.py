@@ -176,6 +176,10 @@ with Experiment(description) as experiment:
 
                 process.signal(signal.SIGINT)
                 process.wait()
+            except KeyboardInterrupt:
+                process.signal(signal.SIGINT)
+                process.wait()
+                raise
             except Exception:
                 # FIXME: this doesn't always work. sometimes, the process stays running when the script exits on error
                 process.kill()
