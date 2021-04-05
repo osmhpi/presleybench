@@ -52,6 +52,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 #define CAPACITY_INCREMENT (4 * 1024 / sizeof(size_t)) // number of size_t's in a page of memory
 
@@ -179,6 +180,24 @@ posting_insert (struct groupkey_t *key, int v, size_t value_pos)
   key->index.n++;
 
   return 0;
+}
+
+int
+groupkey_placement_put (struct groupkey_t *key, void **tail, int k, int v)
+{
+  //size_t value_pos = binary_search(key->unique.n, key->unique.values, k);
+  //if (key->unique.n == 0 || key->unique.values[value_pos] != k)
+  //  {
+  //    int res;
+  //    guard (0 == (res = value_insert(key, k, value_pos))) else { return res; }
+  //  }
+
+  //int res;
+  //guard (0 == (res = posting_insert(key, v, value_pos))) else { return res; }
+  
+  // TODO
+  errno = ENOSYS;
+  return -1;
 }
 
 int

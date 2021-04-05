@@ -13,7 +13,7 @@ struct node_t
     size_t n;
     int *cpus;
   } cpus;
-  struct index_t data_index;
+  struct index_t *data_index;
 };
 
 struct topology_t

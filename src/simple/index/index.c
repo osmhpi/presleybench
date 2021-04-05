@@ -21,11 +21,13 @@ index_init (struct index_t *index, enum index_type_e type)
       case INDEX_TYPE_BPLUS:
         index->prepare = &index_bplus_prepare;
         index->get = (index_get_func*)&bplus_tree_get;
+        index->placement_put = (index_placement_put_func*)&bplus_tree_placement_put;
         index->put = (index_put_func*)&bplus_tree_put;
         break;
       case INDEX_TYPE_GROUPKEY:
         index->prepare = (index_prepare_func*)&groupkey_prepare;
         index->get = (index_get_func*)&groupkey_get;
+        index->placement_put = (index_placement_put_func*)&groupkey_placement_put;
         index->put = (index_put_func*)&groupkey_put;
         break;
       default:

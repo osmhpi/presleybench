@@ -148,7 +148,7 @@ track_free (void* ptr)
     {
       if (blocks.e[i].ptr == ptr)
         {
-          aggregator_bytes -= blocks.e[i].size;
+          //aggregator_bytes -= blocks.e[i].size;
           memmove(blocks.e + i, blocks.e + i + 1, (blocks.n - i - 1) * sizeof(*blocks.e));
           blocks.n--;
           return;

@@ -14,6 +14,7 @@ struct index_t;
 
 typedef int(index_prepare_func)(struct index_t*);
 typedef int(index_put_func)(struct index_t*, int, int);
+typedef int(index_placement_put_func)(struct index_t*, void**, int, int);
 typedef int(index_get_func)(struct index_t*, int);
 
 struct index_t
@@ -28,6 +29,7 @@ struct index_t
 
   index_prepare_func *prepare;
   index_put_func *put;
+  index_placement_put_func *placement_put;
   index_get_func *get;
 };
 

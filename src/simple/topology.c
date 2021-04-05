@@ -87,6 +87,18 @@ topology_discover (void)
       fprintf(stderr, "%i", set);
     }
   fprintf(stderr, "\n");
+
+  mask = numa_get_mems_allowed();
+  fprintf(stderr, "m allowed: ");
+  for (i = 0, n = 0; i < mask->size; ++i)
+    {
+      if (i > 0 && i % 64 == 0)
+        fprintf(stderr, "\n           ");
+
+      int set = numa_bitmask_isbitset(mask, i);
+      fprintf(stderr, "%i", set);
+    }
+  fprintf(stderr, "\n");
 #else
   topology.nodes.nodes[0].num = 0;
 #endif
@@ -105,13 +117,16 @@ topology_discover (void)
         fprintf(stderr, "\n           ");
 
       int set = numa_bitmask_isbitset(mask, i);
+
       if (set)
         {
           int nodenum;
           // this sometimes fails on very large systems (~400 cores)
+          int errsv = errno;
           guard (0 <= (nodenum = topology_node_of_cpu(i))) else
             {
               fprintf(stderr, "X");
+              errno = errsv;
               continue;
             }
           struct node_t *node;

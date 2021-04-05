@@ -12,7 +12,7 @@ struct thread_args_t
   int round;
 
   unsigned long long prev_ctr;
-  unsigned long long ctr;
+  unsigned long long *ctr;
   unsigned int seed;
 
   size_t data_range;

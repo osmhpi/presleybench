@@ -110,6 +110,7 @@ struct bplus_tree {
 
 void bplus_tree_dump(struct bplus_tree *tree);
 int bplus_tree_get(struct bplus_tree *tree, key_t key);
+int bplus_tree_placement_put(struct bplus_tree *tree, void** tail, key_t key, int data);
 int bplus_tree_put(struct bplus_tree *tree, key_t key, int data);
 int bplus_tree_get_range(struct bplus_tree *tree, key_t key1, key_t key2);
 struct bplus_tree *bplus_tree_init(int order, int entries);

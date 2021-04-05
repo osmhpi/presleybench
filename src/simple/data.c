@@ -4,6 +4,10 @@
 #include "simple/topology.h"
 #include "simple/memory_aggregator.h"
 
+#if HAVE_NUMA
+#  include <numa.h> // only used for debugging purposes
+#endif
+
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,7 +16,7 @@
 size_t data_rows = 0;
 int *data_array = NULL;
 size_t data_range = 0;
-struct index_t data_index = { 0 };
+struct index_t *data_index = NULL;
 
 static int progress_max;
 static int progress_step;
@@ -77,7 +81,7 @@ populate_data_array (void)
 }
 
 static int
-populate_data_index (struct index_t *index)
+populate_data_index (struct index_t **index)
 {
   int res;
 
@@ -86,8 +90,11 @@ populate_data_index (struct index_t *index)
 
   // prepare index
   aggregator_enabled = 1;
-  guard (0 == (res = index_init(index, arguments.index_type))) else { return res; }
-  guard (0 == (res = index->prepare(index))) else { return res; }
+  guard (NULL != (*index = malloc(sizeof(**index)))) else { return -1; }
+
+  memset(*index, 0, sizeof(**index));
+  guard (0 == (res = index_init(*index, arguments.index_type))) else { return res; }
+  guard (0 == (res = (*index)->prepare(*index))) else { return res; }
   aggregator_enabled = 0;
 
   // populate index
@@ -101,10 +108,41 @@ populate_data_index (struct index_t *index)
 
       aggregator_enabled = 1;
       // TODO: make bplustree work with a value of 0, to avoid the need for 1-indexed arrays here
-      guard (0 == (res = index->put(index, data_array[i], i + 1))) else { return res; }
+      guard (0 == (res = (*index)->put(*index, data_array[i], i + 1))) else { return res; }
       aggregator_enabled = 0;
     }
   PROGRESS_FINISH("    ");
+
+  return 0;
+}
+
+static int
+replicate_data_index (struct index_t *dst)
+{
+  memset(dst, 0, sizeof(*dst));
+  int res;
+  guard (0 == (res = index_init(dst, arguments.index_type))) else { return res; }
+  guard (0 == (res = dst->prepare(dst))) else { return res; }
+
+  // populate index
+  fprintf(stderr, "  populating values ...\n");
+
+  void *tail = (void*)dst + sizeof(*dst);
+  size_t i;
+  PROGRESS_BEGIN(data_rows);
+  for (i = 0; i < data_rows; ++i)
+    {
+      PROGRESS_UPDATE("    ", i);
+
+      // TODO: make bplustree work with a value of 0, to avoid the need for 1-indexed arrays here
+      guard (0 == (res = dst->placement_put(dst, &tail, data_array[i], i + 1))) else { return res; }
+    }
+  PROGRESS_FINISH("    ");
+
+  guard ((size_t)(tail - (void*)dst) == aggregator_bytes) else {
+    fprintf(stderr, "replicate index size mismatch. got: %zu, expected: %zu, Aborting.\n", (size_t)(tail - (void*)dst), aggregator_bytes);
+    return -1;
+  }
 
   return 0;
 }
@@ -141,11 +179,23 @@ data_setup (size_t rows, size_t range)
     {
       fprintf(stderr, "preparing %s index replica on node #%i ...\n", index_type_name(arguments.index_type), topology.nodes.nodes[i].num);
 
-      guard (0 == (res = topology_membind_to_node(topology.nodes.nodes[i].num))) else { return res; }
-      guard (0 == (res = populate_data_index(&topology.nodes.nodes[i].data_index))) else { return res; }
-    }
+      fprintf(stderr, "  allocating %zu bytes on node #%i ...\n", aggregator_bytes, topology.nodes.nodes[i].num);
 
-  guard (0 == (res = topology_membind_to_node(arguments.primary_node))) else { return res; }
+      guard (NULL != (topology.nodes.nodes[i].data_index = numa_alloc_onnode(aggregator_bytes, topology.nodes.nodes[i].num))) else { return -1; }
+      memset(topology.nodes.nodes[i].data_index, 0, sizeof(*topology.nodes.nodes[i].data_index));
+
+      int node = 0;
+      debug_guard (0 == numa_move_pages(0, 1, (void**)&(topology.nodes.nodes[i].data_index), NULL, &node, 0));
+      
+      guard (node == topology.nodes.nodes[i].num) else
+        {
+          runtime_error("index replication: replica memory does not appear local. N#%i vs I#%i, Aborting.",
+                        topology.nodes.nodes[i].num, node);
+          return -1;
+        }
+
+      guard (0 == (res = replicate_data_index(topology.nodes.nodes[i].data_index))) else { return res; }
+    }
 
   return 0;
 }
@@ -166,5 +216,5 @@ data_linear_search (int *array, size_t rows, int needle)
 int
 data_index_search (struct index_t *index, int needle)
 {
-  return data_index.get(index, needle);
+  return data_index->get(index, needle);
 }

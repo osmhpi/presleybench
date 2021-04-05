@@ -9,7 +9,7 @@
 extern size_t data_rows;
 extern int *data_array;
 extern size_t data_range;
-extern struct index_t data_index;
+extern struct index_t *data_index;
 
 int data_setup (size_t, size_t) att_warn_unused_result;
 

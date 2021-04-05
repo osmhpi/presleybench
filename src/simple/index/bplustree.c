@@ -19,6 +19,19 @@ enum {
         RIGHT_SIBLING = 1,
 };
 
+static void **nextalloc = NULL;
+
+void *nextcalloc(size_t nmemb, size_t size)
+{
+  if (nextalloc == NULL)
+    return calloc(nmemb, size);
+
+  void *res = *nextalloc;
+  memset(res, 0, nmemb * size);
+  *nextalloc += nmemb * size;
+  return res;
+}
+
 static inline int is_leaf(struct bplus_node *node)
 {
         return node->type == BPLUS_TREE_LEAF;
@@ -45,7 +58,7 @@ static key_t key_binary_search(key_t *arr, int len, key_t target)
 
 static struct bplus_non_leaf *non_leaf_new(void)
 {
-        struct bplus_non_leaf *node = calloc(1, sizeof(*node));
+        struct bplus_non_leaf *node = nextcalloc(1, sizeof(*node));
         assert(node != NULL);
         list_init(&node->link);
         node->type = BPLUS_TREE_NON_LEAF;
@@ -55,7 +68,7 @@ static struct bplus_non_leaf *non_leaf_new(void)
 
 static struct bplus_leaf *leaf_new(void)
 {
-        struct bplus_leaf *node = calloc(1, sizeof(*node));
+        struct bplus_leaf *node = nextcalloc(1, sizeof(*node));
         assert(node != NULL);
         list_init(&node->link);
         node->type = BPLUS_TREE_LEAF;
@@ -797,8 +810,19 @@ int bplus_tree_get(struct bplus_tree *tree, key_t key)
         }
 }
 
+int bplus_tree_placement_put(struct bplus_tree *tree, void **tail, key_t key, int data)
+{
+        nextalloc = tail;
+        if (data) {
+                return bplus_tree_insert(tree, key, data);
+        } else {
+                return bplus_tree_delete(tree, key);
+        }
+}
+
 int bplus_tree_put(struct bplus_tree *tree, key_t key, int data)
 {
+        nextalloc = NULL;
         if (data) {
                 return bplus_tree_insert(tree, key, data);
         } else {
