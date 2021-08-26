@@ -187,7 +187,7 @@ threads_setup (void)
 
         if (!arguments.index_search)
           threads.args[n].index = NULL;
-        else if (arguments.replicate)
+        else if (!arguments.replicate)
           threads.args[n].index = data_index[primary_node];
         else
           threads.args[n].index = data_index[topology.nodes.nodes[i].num];
