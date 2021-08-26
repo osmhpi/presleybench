@@ -1,5 +1,7 @@
 /*
  * Copyright (C) 2015, Leo Ma <begeekmyfriend@gmail.com>
+ *
+ * adapted from: https://github.com/begeekmyfriend/bplustree
  */
 
 #include <stdio.h>
