@@ -9,10 +9,10 @@
 
 extern char *program_invocation_name;
 
-#define runtime_assert(COND, ...) \
+#define presley_runtime_assert(COND, ...) \
   do { if (!(COND)) assert_error(__VA_ARGS__); } while (0)
 
-#define runtime_error(...) runtime_assert(0, __VA_ARGS__)
+#define presley_runtime_error(...) presley_runtime_assert(0, __VA_ARGS__)
 
 #define guard(COND) \
   if ((COND) || (DEBUG && assert_error_at_line(__FILE__, __LINE__, "assertion failed: %s", # COND) && 0)) { /* empty */ }

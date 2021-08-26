@@ -11,13 +11,10 @@
 #include <stdlib.h>
 #include <signal.h>
 
-// TODO: fix race condition in reset
 
 void
-handle_sigusr1 (int sigspec)
+handle_sigusr1 (att_unused int sigspec)
 {
-  (void)sigspec;
-
   printf("threadid,nodeid,cpuid,round,counter\n");
 
   size_t i;
@@ -33,13 +30,9 @@ handle_sigusr1 (int sigspec)
 }
 
 void
-handle_sigusr2 (int sigspec)
+handle_sigusr2 (att_unused int sigspec)
 {
-  (void)sigspec;
-
   printf("resetting thread counters\n");
-
-  // TODO: reset random seed? barrier?
 
   size_t i;
   for (i = 0; i < threads.n; ++i)
@@ -50,13 +43,13 @@ handle_sigusr2 (int sigspec)
 }
 
 void
-handle_sigint (int sigspec)
+handle_sigint (att_unused int sigspec)
 {
-  (void)sigspec;
-
+  fprintf(stderr, "sending all threads the stop signal\n");
   size_t i;
   for (i = 0; i < threads.n; ++i)
     {
+      // gracefully stop all worker threads
       threads.args[i].cont = 0;
     }
 }
@@ -72,14 +65,14 @@ main (int argc, char *argv[])
   int res;
   guard (0 == (res = argparse(argc, argv))) else
     {
-      runtime_error("failed to comprehend command line arguments");
+      presley_runtime_error("failed to comprehend command line arguments");
       return res;
     }
 
   // discover NUMA topology
   guard (0 == (res = topology_setup())) else
     {
-      runtime_error("topology_setup");
+      presley_runtime_error("topology_setup");
       return res;
     }
 
@@ -89,14 +82,14 @@ main (int argc, char *argv[])
   // generate test data
   guard (0 == (res = data_setup(arguments.rows, (size_t)(arguments.rows * arguments.sparsity)))) else
     {
-      runtime_error("data_setup");
+      presley_runtime_error("data_setup");
       return res;
     }
 
   // start worker threads
   guard (0 == (res = threads_setup())) else
     {
-      runtime_error("threads_setup");
+      presley_runtime_error("threads_setup");
       return res;
     }
 
@@ -118,7 +111,7 @@ main (int argc, char *argv[])
   // wait for workers to terminate
   guard (0 == (res = threads_join())) else
     {
-      runtime_error("threads_join");
+      presley_runtime_error("threads_join");
       return res;
     }
 

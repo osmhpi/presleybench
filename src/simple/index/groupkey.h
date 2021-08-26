@@ -22,7 +22,6 @@ struct groupkey_t
 
 int groupkey_prepare (struct groupkey_t*) att_warn_unused_result;
 int groupkey_put (struct groupkey_t*, int, int) att_warn_unused_result;
-int groupkey_placement_put (struct groupkey_t*, void**, int, int) att_warn_unused_result;
 int groupkey_get (struct groupkey_t*, int) att_warn_unused_result;
 
 #endif

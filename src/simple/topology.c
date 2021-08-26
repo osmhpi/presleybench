@@ -43,16 +43,6 @@ topology_node_of_cpu (int cpu)
 #endif
 
 static int att_warn_unused_result
-topology_get_current_node (void)
-{
-#ifdef HAVE_NUMA
-  return numa_node_of_cpu(sched_getcpu());
-#else
-  return 0;
-#endif
-}
-
-static int att_warn_unused_result
 topology_discover (void)
 {
 #ifdef HAVE_NUMA
@@ -160,27 +150,11 @@ topology_setup (void)
 #ifdef HAVE_NUMA
   guard (0 == (res = numa_available())) else
     {
-      runtime_error("failed to enable NUMA support");
+      presley_runtime_error("failed to enable NUMA support");
       return res;
     }
   numa_set_strict(1);
 #endif
-
-  if (arguments.primary_node < 0)
-    {
-      arguments.primary_node = topology_get_current_node();
-    }
-
-  fprintf(stderr, "attempting to bind master task allocations to node #%i\n", arguments.primary_node);
-#ifndef HAVE_NUMA
-  fprintf(stderr, "  NOTE: NUMA support disabled at compile time\n");
-#endif
-
-  guard (0 == (res = topology_membind_to_node(arguments.primary_node))) else
-    {
-      runtime_error("failed to bind memory allocations to node #%i", arguments.primary_node);
-      return res;
-    }
 
   guard (0 == (res = topology_discover())) else { return res; }
 

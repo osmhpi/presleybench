@@ -20,24 +20,30 @@ index_init (struct index_t *index, enum index_type_e type)
     {
       case INDEX_TYPE_BPLUS:
         index->prepare = &index_bplus_prepare;
+        index->deinit = (index_deinit_func*)&bplus_tree_deinit;
         index->get = (index_get_func*)&bplus_tree_get;
-        index->placement_put = (index_placement_put_func*)&bplus_tree_placement_put;
         index->put = (index_put_func*)&bplus_tree_put;
         break;
       case INDEX_TYPE_GROUPKEY:
         index->prepare = (index_prepare_func*)&groupkey_prepare;
+        index->deinit = NULL;
         index->get = (index_get_func*)&groupkey_get;
-        index->placement_put = (index_placement_put_func*)&groupkey_placement_put;
         index->put = (index_put_func*)&groupkey_put;
         break;
       default:
-        runtime_error("unrecognized index type %i (%s)", arguments.index_type, arguments._index_type);
+        presley_runtime_error("unrecognized index type %i (%s)", arguments.index_type, arguments._index_type);
         return 1;
     }
 
   index->type = type;
 
   return 0;
+}
+
+void
+index_destroy (struct index_t *index)
+{
+  index->deinit(index);
 }
 
 const char*

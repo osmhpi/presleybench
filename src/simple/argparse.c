@@ -44,7 +44,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
         int errsv = errno; errno = 0;
         guard (0 == ((args->primary_node = strtol(arg, NULL, 0)), errno)) else
           {
-            runtime_error("invalid primary node number: '%s'", arg);
+            presley_runtime_error("invalid primary node number: '%s'", arg);
             return 1;
           }
         arguments._primary_node = arg;
@@ -73,7 +73,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
         }
       else
         {
-          runtime_error("invalid index type: '%s'", arg);
+          presley_runtime_error("invalid index type: '%s'", arg);
           return 1;
         }
       args->_index_type = arg;
@@ -83,7 +83,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
         int errsv = errno; errno = 0;
         guard (0 == ((args->rows = strtol(arg, NULL, 0)), errno)) else
           {
-            runtime_error("invalid row count: '%s'", arg);
+            presley_runtime_error("invalid row count: '%s'", arg);
             return 1;
           }
         errno = errsv;
@@ -94,7 +94,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
         int errsv = errno; errno = 0;
         guard (0 == ((args->sparsity = strtod(arg, NULL)), errno)) else
           {
-            runtime_error("invalid sparsity factor: '%s'", arg);
+            presley_runtime_error("invalid sparsity factor: '%s'", arg);
             return 1;
           }
         errno = errsv;
@@ -111,7 +111,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
         }
       else
         {
-          runtime_error("invalid pin strategy: '%s'", arg);
+          presley_runtime_error("invalid pin strategy: '%s'", arg);
           return 1;
         }
       args->_pin_strategy = arg;

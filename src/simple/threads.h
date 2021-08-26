@@ -43,4 +43,7 @@ extern struct thread_list_t threads;
 int threads_setup(void) att_warn_unused_result;
 int threads_join(void) att_warn_unused_result;
 
+void* thread_func_index_search(void*);
+void* thread_func_linear_search(void*);
+
 #endif

@@ -7,9 +7,10 @@
 #include <stddef.h>
 
 extern size_t data_rows;
-extern int *data_array;
 extern size_t data_range;
-extern struct index_t *data_index;
+extern int *data_array;
+extern struct index_t **data_index;
+extern int primary_node;
 
 int data_setup (size_t, size_t) att_warn_unused_result;
 

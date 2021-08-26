@@ -6,7 +6,10 @@
 #include "simple/argparse.h"
 
 #if HAVE_NUMA
-#  include <numa.h> // only used for debugging purposes
+#  include <numa.h>
+#else
+#  define numa_alloc_onnode(S, N) malloc(S)
+#  define numa_free(P, S) free(P)
 #endif
 
 #if defined(HAVE_LTTNG) && defined(TRACEPOINTS_ENABLED)
@@ -40,30 +43,17 @@ pin_thread (struct thread_args_t *arg)
   return 0;
 }
 
-static void*
+void*
 thread_func_linear_search (void *arg)
 {
-  //void *frame = __builtin_frame_address(0);
-  //int node;
-  //debug_guard (0 == numa_move_pages(0, 1, &frame, NULL, &node, 0));
-
   struct thread_args_t *thread_arg = arg;
-
-  //fprintf(stderr, "thread #%i: pre-pin node of stack data: #%i\n", thread_arg->id, node);
 
   int res;
   guard (0 == (res = pin_thread(arg))) else
     {
-      runtime_error("failed to pin thread #%i", thread_arg->id);
+      presley_runtime_error("failed to pin thread #%i", thread_arg->id);
       return NULL;
     }
-
-  //frame = __builtin_frame_address(0);
-  //debug_guard (0 == numa_move_pages(0, 1, &frame, NULL, &node, 0));
-
-  //fprintf(stderr, "thread #%i: post-pin node of stack data: #%i\n", thread_arg->id, node);
-
-  // TODO: stack pages seem to be on FAR NODE!
 
   int range = thread_arg->data_range;
   int needle = rand_r(&thread_arg->seed) % range;
@@ -78,11 +68,15 @@ thread_func_linear_search (void *arg)
       needle = (needle + step) % range;
       int match = data_linear_search(array, rows, needle);
 
+#if DEBUG
+      fprintf(stderr, "%i: %i (%i)\n", needle, match, match >= 0 ? data_array[match] : -1);
+#endif
+
       if (verify)
         {
           guard (match == -1 || array[match] == needle) else
             {
-              runtime_error("thread #%i:[%llu] search produced incorrect result. %i[%i] vs %i, Aborting.",
+              presley_runtime_error("thread #%i:[%llu] search produced incorrect result. %i[%i] vs %i, Aborting.",
                             thread_arg->id, *thread_arg->ctr, thread_arg->data_array[match], match, needle);
               return NULL;
             }
@@ -91,13 +85,18 @@ thread_func_linear_search (void *arg)
       (*ctr)++;
 
       if ((*ctr) % CHECK_INTERVAL == 0 && !thread_arg->cont)
-        break;
+        {
+#if DEBUG
+          fprintf(stderr, "thread #%i: break condition reached\n", thread_arg->id);
+#endif
+          break;
+        }
     }
 
   return NULL;
 }
 
-static void*
+void*
 thread_func_index_search (void *arg)
 {
   struct thread_args_t *thread_arg = arg;
@@ -105,7 +104,7 @@ thread_func_index_search (void *arg)
   int res;
   guard (0 == (res = pin_thread(arg))) else
     {
-      runtime_error("failed to pin thread #%i", thread_arg->id);
+      presley_runtime_error("failed to pin thread #%i", thread_arg->id);
       return NULL;
     }
 
@@ -123,30 +122,22 @@ thread_func_index_search (void *arg)
       needle = (needle + step) % range;
       int match = data_index_search(index, needle);
 
+#if DEBUG
+      fprintf(stderr, "%i: %i (%i)\n", needle, match, match >= 0 ? data_array[match] : -1);
+#endif
+
       if (verify)
         {
-          // TODO: make bplustree work with a value of 0, to avoid the need for 1-indexed arrays here
-          guard (match == -1 || thread_arg->data_array[match - 1] == needle) else
+          guard (match == -1 || thread_arg->data_array[match] == needle) else
             {
               int real_match = data_linear_search(thread_arg->data_array, thread_arg->data_rows, needle);
-              runtime_error("thread #%i:[%llu] search produced incorrect result. %i[%i] vs %i[%i], Aborting.",
+              presley_runtime_error("thread #%i:[%llu] search produced incorrect result. %i[%i] vs %i[%i], Aborting.",
                             thread_arg->id, *thread_arg->ctr, thread_arg->data_array[match - 1], match - 1, needle, real_match);
-              return NULL;
-            }
-
-          int node;
-          debug_guard (0 == numa_move_pages(0, 1, (void**)&(thread_arg->index), NULL, &node, 0));
-
-          guard (!arguments.replicate || node == thread_arg->node) else
-            {
-              runtime_error("thread #%i:[%llu] index memory does not appear local. T#%i vs I#%i, Aborting.",
-                            thread_arg->id, *thread_arg->ctr, thread_arg->node, node);
               return NULL;
             }
         }
 
       (*ctr)++;
-      //tracepoint(presleybench_simple_threads, execute_task, thread_arg->cpu, thread_arg->node);
 
       if ((*ctr) % CHECK_INTERVAL == 0 && !thread_arg->cont)
         break;
@@ -194,10 +185,12 @@ threads_setup (void)
         threads.args[n].data_range = data_range;
         threads.args[n].cont = 1;
 
-        if (arguments.replicate)
-          threads.args[n].index = topology.nodes.nodes[i].data_index;
+        if (!arguments.index_search)
+          threads.args[n].index = NULL;
+        else if (arguments.replicate)
+          threads.args[n].index = data_index[primary_node];
         else
-          threads.args[n].index = data_index;
+          threads.args[n].index = data_index[topology.nodes.nodes[i].num];
       }
 
   int res;

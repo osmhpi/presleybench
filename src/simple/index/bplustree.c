@@ -11,6 +11,8 @@
 
 #include "bplustree.h"
 
+#include "src/util/assert.h"
+
 enum {
         BPLUS_TREE_LEAF,
         BPLUS_TREE_NON_LEAF = 1,
@@ -20,19 +22,6 @@ enum {
         LEFT_SIBLING,
         RIGHT_SIBLING = 1,
 };
-
-static void **nextalloc = NULL;
-
-void *nextcalloc(size_t nmemb, size_t size)
-{
-  if (nextalloc == NULL)
-    return calloc(nmemb, size);
-
-  void *res = *nextalloc;
-  memset(res, 0, nmemb * size);
-  *nextalloc += nmemb * size;
-  return res;
-}
 
 static inline int is_leaf(struct bplus_node *node)
 {
@@ -60,7 +49,7 @@ static key_t key_binary_search(key_t *arr, int len, key_t target)
 
 static struct bplus_non_leaf *non_leaf_new(void)
 {
-        struct bplus_non_leaf *node = nextcalloc(1, sizeof(*node));
+        struct bplus_non_leaf *node = calloc(1, sizeof(*node));
         assert(node != NULL);
         list_init(&node->link);
         node->type = BPLUS_TREE_NON_LEAF;
@@ -70,7 +59,7 @@ static struct bplus_non_leaf *non_leaf_new(void)
 
 static struct bplus_leaf *leaf_new(void)
 {
-        struct bplus_leaf *node = nextcalloc(1, sizeof(*node));
+        struct bplus_leaf *node = calloc(1, sizeof(*node));
         assert(node != NULL);
         list_init(&node->link);
         node->type = BPLUS_TREE_LEAF;
@@ -98,7 +87,7 @@ static int bplus_tree_search(struct bplus_tree *tree, key_t key)
                 if (is_leaf(node)) {
                         struct bplus_leaf *ln = (struct bplus_leaf *)node;
                         i = key_binary_search(ln->key, ln->entries, key);
-                        ret = i >= 0 ? ln->data[i] : 0;
+                        ret = i >= 0 ? ln->data[i] : -1;
                         break;
                 } else {
                         struct bplus_non_leaf *nln = (struct bplus_non_leaf *)node;
@@ -804,32 +793,17 @@ static int bplus_tree_delete(struct bplus_tree *tree, key_t key)
 
 int bplus_tree_get(struct bplus_tree *tree, key_t key)
 {
-        int data = bplus_tree_search(tree, key); 
-        if (data) {
-                return data;
-        } else {
-                return -1;
-        }
-}
-
-int bplus_tree_placement_put(struct bplus_tree *tree, void **tail, key_t key, int data)
-{
-        nextalloc = tail;
-        if (data) {
-                return bplus_tree_insert(tree, key, data);
-        } else {
-                return bplus_tree_delete(tree, key);
-        }
+        return bplus_tree_search(tree, key);
 }
 
 int bplus_tree_put(struct bplus_tree *tree, key_t key, int data)
 {
-        nextalloc = NULL;
-        if (data) {
-                return bplus_tree_insert(tree, key, data);
-        } else {
-                return bplus_tree_delete(tree, key);
-        }
+        return bplus_tree_insert(tree, key, data);
+}
+
+int bplus_tree_del(struct bplus_tree *tree, key_t key)
+{
+        return bplus_tree_delete(tree, key);
 }
 
 struct bplus_tree *bplus_tree_init(int order, int entries)
@@ -872,7 +846,8 @@ int bplus_tree_initi(struct bplus_tree *tree, int order, int entries)
 
 void bplus_tree_deinit(struct bplus_tree *tree)
 {
-        free(tree);
+        // TODO
+        (void)tree;
 }
 
 int bplus_tree_get_range(struct bplus_tree *tree, key_t key1, key_t key2)
@@ -921,7 +896,6 @@ int bplus_tree_get_range(struct bplus_tree *tree, key_t key1, key_t key2)
     return data;
 }
 
-#ifdef _BPLUS_TREE_DEBUG
 struct node_backlog {
         /* Node backlogged */
         struct bplus_node *node;
@@ -934,7 +908,7 @@ static inline int children(struct bplus_node *node)
         return ((struct bplus_non_leaf *) node)->children;
 }
 
-static void node_key_dump(struct bplus_node *node)
+att_unused static void node_key_dump(struct bplus_node *node)
 {
         int i;
         if (is_leaf(node)) {
@@ -949,7 +923,7 @@ static void node_key_dump(struct bplus_node *node)
         printf("\n");
 }
 
-static key_t node_key(struct bplus_node *node, int i)
+att_unused static key_t node_key(struct bplus_node *node, int i)
 {
         if (is_leaf(node)) {
                 return ((struct bplus_leaf *)node)->key[i];
@@ -963,18 +937,18 @@ static void key_print(struct bplus_node *node)
         int i;
         if (is_leaf(node)) {
                 struct bplus_leaf *leaf = (struct bplus_leaf *)node;
-                printf("leaf:");
+                fprintf(stderr, "leaf:");
                 for (i = 0; i < leaf->entries; i++) {
-                        printf(" %d", leaf->key[i]);
+                        fprintf(stderr, " %d", leaf->key[i]);
                 }
         } else {
                 struct bplus_non_leaf *non_leaf = (struct bplus_non_leaf *)node;
-                printf("node:");
+                fprintf(stderr, "node:");
                 for (i = 0; i < non_leaf->children - 1; i++) {
-                        printf(" %d", non_leaf->key[i]);
+                        fprintf(stderr, " %d", non_leaf->key[i]);
                 }
         }
-        printf("\n");
+        fprintf(stderr, "\n");
 }
 
 void bplus_tree_dump(struct bplus_tree *tree)
@@ -1008,12 +982,12 @@ void bplus_tree_dump(struct bplus_tree *tree)
                                 int i;
                                 for (i = 1; i < level; i++) {
                                         if (i == level - 1) {
-                                                printf("%-8s", "+-------");
+                                                fprintf(stderr, "%-8s", "+-------");
                                         } else {
                                                 if (nbl_stack[i - 1].node != NULL) {
-                                                        printf("%-8s", "|");
+                                                        fprintf(stderr, "%-8s", "|");
                                                 } else {
-                                                        printf("%-8s", " ");
+                                                        fprintf(stderr, "%-8s", " ");
                                                 }
                                         }
                                 }
@@ -1033,4 +1007,3 @@ void bplus_tree_dump(struct bplus_tree *tree)
                 }
         }
 }
-#endif
