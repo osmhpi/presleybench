@@ -2,38 +2,15 @@
 dnl process this file with autoconf to produce the configure script
 
 AC_PREREQ([2.68])
-AC_INIT([presleybench], [0.1], [wimi-polze@hpi.de])
-AC_CONFIG_SRCDIR([src/presley/main.h])
+AC_INIT([simplebench], [0.1], [wimi-polze@hpi.de])
+AC_CONFIG_SRCDIR([src/simple/main.hpp])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_AUX_DIR([scripts])
 AC_CONFIG_MACRO_DIR([m4])
 
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 
-AC_PROG_CC
-AM_PROG_LEX
-AC_PROG_YACC
-
-AC_CHECK_LIB([numa], [numa_available], [numa_LIBS=-lnuma; AC_SUBST(numa_LIBS)
-    AC_DEFINE_UNQUOTED([HAVE_NUMA], [1], [Define to 1 if you have libnuma])])
-
-AC_CHECK_LIB([lttng-ust], [lttng_ust_init], [lttng_LIBS=-llttng-ust; AC_SUBST(lttng_LIBS)
-    AC_DEFINE_UNQUOTED([HAVE_LTTNG], [1], [Define to 1 if you have lttng])])
-
-AC_ARG_ENABLE([tracepoints],
-    AS_HELP_STRING([--enable-tracepoints], [Enable libttng powered tracepoint support]))
-
-AS_IF([test "x$enable_tracepoints" = "xyes"], [
-  AS_IF([test "x$have_lttng" = "xyes"], [
-    AC_DEFINE_UNQUOTED([TRACEPOINTS_ENABLED], [1], [Define to 1 if tracepoints are enabled. Requires lttng])
-  ], [
-    AC_MSG_ERROR([Cannot enable tracepoints: missing lttng])
-  ])
-])
-
-AX_PTHREAD([], [AC_MSG_ERROR([missing pthread])])
-
-AX_CHECK_FUNC_DECL([asprintf], [stdio.h])
+AC_PROG_CXX
 
 AC_CHECK_FUNCS([__libc_malloc __libc_calloc __libc_realloc __libc_free])
 
