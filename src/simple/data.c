@@ -145,6 +145,7 @@ data_setup (size_t rows, size_t range)
       struct index_t *index = numa_alloc_onnode(sizeof(*index), primary_node);
       memset(index, 0, sizeof(*index));
 
+      guard (0 == (res = topology_membind_to_node(primary_node))) else { return res; }
       guard (0 == (res = populate_data_index(index))) else { return res; }
       data_index[primary_node] = index;
     }
@@ -158,6 +159,7 @@ data_setup (size_t rows, size_t range)
           struct index_t *index = numa_alloc_onnode(sizeof(*index), topology.nodes.nodes[i].num);
           memset(index, 0, sizeof(*index));
 
+          guard (0 == (res = topology_membind_to_node(topology.nodes.nodes[i].num))) else { return res; }
           guard (0 == (res = populate_data_index(index))) else { return res; }
           data_index[topology.nodes.nodes[i].num] = index;
         }
